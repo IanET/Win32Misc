@@ -189,12 +189,9 @@ end
 
 function onGetMinMaxInfo(hwnd, pmmi::Ptr{MINMAXINFO})
     mmi = unsafe_load(pmmi)
-    fo = Base.fieldoffset(MINMAXINFO, Base.fieldindex(MINMAXINFO, :ptMinTrackSize))
-    @info "onGetMinMaxInfo" hwnd mmi fo
-    unsafe_store!(Ptr{Int32}(pmmi), MIN_WIDTH, 7)
-    unsafe_store!(Ptr{Int32}(pmmi), MIN_HEIGHT, 8)
-    @info unsafe_load(pmmi)
-
+    mmiinew = MINMAXINFO(mmi.ptReserved, mmi.ptMaxSize, mmi.ptMaxTrackSize, POINT(MIN_WIDTH, MIN_HEIGHT))
+    unsafe_store!(pmmi, mmiinew)
+    # @info unsafe_load(pmmi)
     return 0
 end
 
