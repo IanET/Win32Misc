@@ -842,6 +842,9 @@ const SRCPAINT = 0x00EE0086
 const COLORONCOLOR = 0x00000003
 const HALFTONE = 0x00000004
 
+const BI_RGB = 0
+const DIB_RGB_COLORS = 0
+
 struct tagWNDCLASSW
     style::UINT
     lpfnWndProc::WNDPROC
@@ -859,16 +862,6 @@ const WNDCLASSW = tagWNDCLASSW
 const PWNDCLASSW = Ptr{tagWNDCLASSW}
 const NPWNDCLASSW = Ptr{tagWNDCLASSW}
 const LPWNDCLASSW = Ptr{tagWNDCLASSW}
-
-# struct tagPOINT
-#     x::LONG
-#     y::LONG
-# end
-
-# const POINT = tagPOINT
-# const PPOINT = Ptr{tagPOINT}
-# const NPPOINT = Ptr{tagPOINT}
-# const LPPOINT = Ptr{tagPOINT}
 
 struct tagMSG
     hwnd::HWND
@@ -1010,6 +1003,32 @@ end
     bmBits::LPVOID = 0
 end
 
+@kwdef struct RGBQUAD
+    rgbBlue::BYTE = 0
+    rgbGreen::BYTE = 0
+    rgbRed::BYTE = 0
+    rgbReserved::BYTE = 0
+end
+
+@kwdef struct BITMAPINFOHEADER
+    biSize::DWORD = 0
+    biWidth::LONG = 0
+    biHeight::LONG = 0
+    biPlanes::WORD = 0
+    biBitCount::WORD = 0
+    biCompression::DWORD = 0
+    biSizeImage::DWORD = 0
+    biXPelsPerMeter::LONG = 0
+    biYPelsPerMeter::LONG = 0
+    biClrUsed::DWORD = 0
+    biClrImportant::DWORD = 0
+end
+
+@kwdef struct BITMAPINFO
+    bmiHeader::BITMAPINFOHEADER = BITMAPINFOHEADER()
+    bmiColors::NTuple{1, RGBQUAD} = [RGBQUAD()] |> Tuple
+end
+
 RegisterClassW(lpWndClass) = @ccall User32.RegisterClassW(lpWndClass::Ptr{WNDCLASSW})::ATOM
 CreateWindowExW(dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam) = @ccall User32.CreateWindowExW(dwExStyle::DWORD, lpClassName::LPCWSTR, lpWindowName::LPCWSTR, dwStyle::DWORD, X::Cint, Y::Cint, nWidth::Cint, nHeight::Cint, hWndParent::HWND, hMenu::HMENU, hInstance::HINSTANCE, lpParam::LPVOID)::HWND
 DefWindowProcW(hWnd, Msg, wParam, lParam) = @ccall User32.DefWindowProcW(hWnd::HWND, Msg::UINT, wParam::WPARAM, lParam::LPARAM)::LRESULT
@@ -1095,6 +1114,9 @@ StretchBlt(hDestDC, xDest, yDest, nDestWidth, nDestHeight, hSrcDC, xSrc, ySrc, n
 SetStretchBltMode(hDC, iStretchMode) = @ccall Gdi32.SetStretchBltMode(hDC::HDC, iStretchMode::Cint)::Cint
 SetBrushOrgEx(hDC, nXOrg, nYOrg, lppt) = @ccall Gdi32.SetBrushOrgEx(hDC::HDC, nXOrg::Cint, nYOrg::Cint, lppt::LPPOINT)::BOOL
 EnableWindow(hWnd, bEnable) = @ccall User32.EnableWindow(hWnd::HWND, bEnable::BOOL)::BOOL
+GetDC(hWnd) = @ccall User32.GetDC(hWnd::HWND)::HDC
+ReleaseDC(hWnd, hDC) = @ccall User32.ReleaseDC(hWnd::HWND, hDC::HDC)::Cint
+CreateDIBSection(hdc, pbmi, iUsage, ppvBits, hSection, dwOffset) = @ccall Gdi32.CreateDIBSection(hdc::HDC, pbmi::Ptr{BITMAPINFO}, iUsage::DWORD, ppvBits::Ptr{LPVOID}, hSection::HANDLE, dwOffset::DWORD)::HBITMAP
 
 # Helpers
 RECT() = RECT(0, 0, 0, 0)

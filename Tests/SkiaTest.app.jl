@@ -1,10 +1,12 @@
-include("../common/Win32.jl")
-using .W32
 using LibBaseTsd
 
-# @info "Press enter to continue" getpid(); readline()
+include("../common/Win32.jl")
+using .W32
 
-include("layout.jl")
+include("../common/LibSkia.jl")
+using .LibSkia
+
+include("Layout.jl")
 
 import Base.cconvert, .GC.@preserve
 
@@ -22,6 +24,7 @@ tolparam(s::String) = s |> cwstring |> pointer |> LPARAM
 Base.Tuple(v::MemoryRef{UInt16}, len) = copyto!(zeros(eltype(v), len), v.mem) |> Tuple
 
 _layout::GridLayout = GridLayout()
+_dib::HBITMAP = HBITMAP(0)
 
 function onImageCreate(hwnd)::LRESULT
     @info "onImageCreate" hwnd
@@ -44,6 +47,15 @@ end
 
 function onImageSize(hwnd, width, height)::LRESULT
     @info "onImageSize" hwnd width height
+    bmih = BITMAPINFOHEADER(sizeof(BITMAPINFOHEADER), width, height, 1, 32, BI_RGB, 0, 0, 0, 0, 0) |> Ref
+    bmpinfo = BITMAPINFO(bmih[], (RGBQUAD(),)) |> Ref
+    pbits = Ptr{Cvoid}(0) |> Ref
+    hdc = GetDC(hwnd)
+    dib = CreateDIBSection(hdc, bmpinfo, DIB_RGB_COLORS, pbits, C_NULL, 0)
+    @assert dib != 0
+    @assert pbits[] != 0
+    @show dib pbits[]
+    ReleaseDC(hwnd, hdc)
     return 0
 end
 
