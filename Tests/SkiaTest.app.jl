@@ -50,7 +50,7 @@ function skiaDraw(w, h)
     sk_canvas_draw_paint(canvas, fill)
 
     sk_paint_set_color(fill, sk_color_set_argb(0xFF, 0x00, 0xFF, 0xFF))
-    rect = sk_rect_t(100.0, 100.0, 540.0, 380.0)
+    rect = sk_rect_t(50, 50, w - 50, h - 50)
     sk_canvas_draw_rect(canvas, Ref(rect), fill)
 
     sk_paint_delete(fill)
@@ -64,7 +64,12 @@ function onImagePaint(hwnd)::LRESULT
     w = ps[].rcPaint.right - ps[].rcPaint.left
     h = ps[].rcPaint.bottom - ps[].rcPaint.top
     skiaDraw(w, h)
-    FillRect(hdc, ps[].rcPaint |> Ref, BLUE_GRAY_BRUSH)
+    # FillRect(hdc, ps[].rcPaint |> Ref, BLUE_GRAY_BRUSH)
+    hdcmem = CreateCompatibleDC(hdc)
+    hbmpold = SelectObject(hdcmem, _dib)
+    BitBlt(hdc, 0, 0, w, h, hdcmem, 0, 0, SRCCOPY)
+    SelectObject(hdcmem, hbmpold)
+    DeleteDC(hdcmem)
     EndPaint(hwnd, ps)
     return 0
 end
