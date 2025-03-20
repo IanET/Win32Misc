@@ -37,10 +37,33 @@ function onImageDestroy(hwnd)::LRESULT
     return 0
 end
 
+sk_color_set_argb(a, r, g, b) = ((UInt32(a) << 24) | (UInt32(r) << 16) | (UInt32(g) << 8) | UInt32(b))
+
+function skiaDraw(w, h)
+    info = sk_imageinfo_t(C_NULL, w, h, BGRA_8888_SK_COLORTYPE, PREMUL_SK_ALPHATYPE)
+    surface = sk_surface_new_raster_direct(Ref(info), _pbits, w * 4, C_NULL, C_NULL, C_NULL)
+    canvas = sk_surface_get_canvas(surface)
+    @info "skiaDraw" surface canvas
+
+    fill = sk_paint_new()
+    sk_paint_set_color(fill, sk_color_set_argb(0xFF, 0x00, 0x00, 0xFF))
+    sk_canvas_draw_paint(canvas, fill)
+
+    sk_paint_set_color(fill, sk_color_set_argb(0xFF, 0x00, 0xFF, 0xFF))
+    rect = sk_rect_t(100.0, 100.0, 540.0, 380.0)
+    sk_canvas_draw_rect(canvas, Ref(rect), fill)
+
+    sk_paint_delete(fill)
+    sk_surface_unref(surface)
+end
+
 function onImagePaint(hwnd)::LRESULT
     @info "onImagePaint" hwnd _dib _pbits
     ps = PAINTSTRUCT() |> Ref
     hdc = BeginPaint(hwnd, ps)
+    w = ps[].rcPaint.right - ps[].rcPaint.left
+    h = ps[].rcPaint.bottom - ps[].rcPaint.top
+    skiaDraw(w, h)
     FillRect(hdc, ps[].rcPaint |> Ref, BLUE_GRAY_BRUSH)
     EndPaint(hwnd, ps)
     return 0
