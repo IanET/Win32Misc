@@ -24,7 +24,8 @@ tolparam(s::String) = s |> cwstring |> pointer |> LPARAM
 Base.Tuple(v::MemoryRef{UInt16}, len) = copyto!(zeros(eltype(v), len), v.mem) |> Tuple
 
 _layout::GridLayout = GridLayout()
-_dib::HBITMAP = HBITMAP(0)
+_dib::HBITMAP = C_NULL
+_pbits::Ptr{Cvoid} = C_NULL
 
 function onImageCreate(hwnd)::LRESULT
     @info "onImageCreate" hwnd
@@ -37,7 +38,7 @@ function onImageDestroy(hwnd)::LRESULT
 end
 
 function onImagePaint(hwnd)::LRESULT
-    @info "onImagePaint" hwnd
+    @info "onImagePaint" hwnd _dib _pbits
     ps = PAINTSTRUCT() |> Ref
     hdc = BeginPaint(hwnd, ps)
     FillRect(hdc, ps[].rcPaint |> Ref, BLUE_GRAY_BRUSH)
@@ -46,15 +47,18 @@ function onImagePaint(hwnd)::LRESULT
 end
 
 function onImageSize(hwnd, width, height)::LRESULT
+    global _dib, _pbits
     @info "onImageSize" hwnd width height
     bmih = BITMAPINFOHEADER(sizeof(BITMAPINFOHEADER), width, height, 1, 32, BI_RGB, 0, 0, 0, 0, 0) |> Ref
     bmpinfo = BITMAPINFO(bmih[], (RGBQUAD(),)) |> Ref
-    pbits = Ptr{Cvoid}(0) |> Ref
     hdc = GetDC(hwnd)
-    dib = CreateDIBSection(hdc, bmpinfo, DIB_RGB_COLORS, pbits, C_NULL, 0)
-    @assert dib != 0
-    @assert pbits[] != 0
-    @show dib pbits[]
+    if _dib != C_NULL; DeleteObject(_dib) end
+    pbits = Ptr{Cvoid}(0) |> Ref
+    _dib = CreateDIBSection(hdc, bmpinfo, DIB_RGB_COLORS, pbits, C_NULL, 0)
+    @assert _dib != C_NULL
+    @assert pbits[] != C_NULL
+    _pbits = pbits[]
+    @show _dib pbits[]
     ReleaseDC(hwnd, hdc)
     return 0
 end
