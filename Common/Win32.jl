@@ -1029,6 +1029,13 @@ end
     bmiColors::NTuple{1, RGBQUAD} = [RGBQUAD()] |> Tuple
 end
 
+@kwdef struct MINMAXINFO
+    ptReserved::POINT = POINT()
+    ptMaxSize::POINT = POINT()
+    ptMaxTrackSize::POINT = POINT()
+    ptMinTrackSize::POINT = POINT()
+end
+
 RegisterClassW(lpWndClass) = @ccall User32.RegisterClassW(lpWndClass::Ptr{WNDCLASSW})::ATOM
 CreateWindowExW(dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam) = @ccall User32.CreateWindowExW(dwExStyle::DWORD, lpClassName::LPCWSTR, lpWindowName::LPCWSTR, dwStyle::DWORD, X::Cint, Y::Cint, nWidth::Cint, nHeight::Cint, hWndParent::HWND, hMenu::HMENU, hInstance::HINSTANCE, lpParam::LPVOID)::HWND
 DefWindowProcW(hWnd, Msg, wParam, lParam) = @ccall User32.DefWindowProcW(hWnd::HWND, Msg::UINT, wParam::WPARAM, lParam::LPARAM)::LRESULT

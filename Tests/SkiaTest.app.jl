@@ -14,6 +14,8 @@ const GAP = -1
 const IDC_IMAGE = 1
 const IDC_OK = 2
 const IDC_CANCEL = 3
+const MIN_WIDTH = 200
+const MIN_HEIGHT = 200
 
 const BLUE_GRAY_BRUSH = CreateSolidBrush(RGB(0xD0, 0xD0, 0xE0))
 const HINST::HINSTANCE = GetModuleHandleW(C_NULL)
@@ -43,7 +45,6 @@ function skiaDraw(w, h)
     info = sk_imageinfo_t(C_NULL, w, h, BGRA_8888_SK_COLORTYPE, PREMUL_SK_ALPHATYPE)
     surface = sk_surface_new_raster_direct(Ref(info), _pbits, w * 4, C_NULL, C_NULL, C_NULL)
     canvas = sk_surface_get_canvas(surface)
-    @info "skiaDraw" surface canvas
 
     fill = sk_paint_new()
     sk_paint_set_color(fill, sk_color_set_argb(0xFF, 0xA0, 0xB0, 0xE0))
@@ -69,13 +70,12 @@ function skiaDraw(w, h)
 end
 
 function onImagePaint(hwnd)::LRESULT
-    @info "onImagePaint" hwnd _dib _pbits
+    @info "onImagePaint" hwnd
     ps = PAINTSTRUCT() |> Ref
     hdc = BeginPaint(hwnd, ps)
     w = ps[].rcPaint.right - ps[].rcPaint.left
     h = ps[].rcPaint.bottom - ps[].rcPaint.top
     skiaDraw(w, h)
-    # FillRect(hdc, ps[].rcPaint |> Ref, BLUE_GRAY_BRUSH)
     hdcmem = CreateCompatibleDC(hdc)
     hbmpold = SelectObject(hdcmem, _dib)
     BitBlt(hdc, 0, 0, w, h, hdcmem, 0, 0, SRCCOPY)
@@ -87,7 +87,7 @@ end
 
 function onImageSize(hwnd, width, height)::LRESULT
     global _dib, _pbits
-    @info "onImageSize" hwnd width -1*height
+    @info "onImageSize" hwnd width height
     bmih = BITMAPINFOHEADER(sizeof(BITMAPINFOHEADER), width, -1*height, 1, 32, BI_RGB, 0, 0, 0, 0, 0) |> Ref
     bmpinfo = BITMAPINFO(bmih[], (RGBQUAD(),)) |> Ref
     hdc = GetDC(hwnd)
@@ -97,7 +97,6 @@ function onImageSize(hwnd, width, height)::LRESULT
     @assert _dib != C_NULL
     @assert pbits[] != C_NULL
     _pbits = pbits[]
-    @show _dib pbits[]
     ReleaseDC(hwnd, hdc)
     return 0
 end
@@ -188,6 +187,17 @@ function onCommand(hwnd, id, code)
     return 0
 end
 
+function onGetMinMaxInfo(hwnd, pmmi::Ptr{MINMAXINFO})
+    mmi = unsafe_load(pmmi)
+    fo = Base.fieldoffset(MINMAXINFO, Base.fieldindex(MINMAXINFO, :ptMinTrackSize))
+    @info "onGetMinMaxInfo" hwnd mmi fo
+    unsafe_store!(Ptr{Int32}(pmmi), MIN_WIDTH, 7)
+    unsafe_store!(Ptr{Int32}(pmmi), MIN_HEIGHT, 8)
+    @info unsafe_load(pmmi)
+
+    return 0
+end
+
 function appWndProc(hwnd::HWND, umsg::UINT, wparam::WPARAM, lparam::LPARAM)::LRESULT
     try
         if umsg == WM_CREATE
@@ -200,6 +210,8 @@ function appWndProc(hwnd::HWND, umsg::UINT, wparam::WPARAM, lparam::LPARAM)::LRE
             return onSize(hwnd, LOWORD(lparam), HIWORD(lparam))
         elseif umsg == WM_COMMAND
             return onCommand(hwnd, LOWORD(wparam), HIWORD(wparam))
+        elseif umsg == WM_GETMINMAXINFO
+            return onGetMinMaxInfo(hwnd, Ptr{MINMAXINFO}(lparam))
         end
         return DefWindowProcW(hwnd, umsg, wparam, lparam)
     catch exc
