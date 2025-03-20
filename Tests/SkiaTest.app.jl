@@ -46,12 +46,23 @@ function skiaDraw(w, h)
     @info "skiaDraw" surface canvas
 
     fill = sk_paint_new()
-    sk_paint_set_color(fill, sk_color_set_argb(0xFF, 0x00, 0x00, 0xFF))
+    sk_paint_set_color(fill, sk_color_set_argb(0xFF, 0xA0, 0xB0, 0xE0))
     sk_canvas_draw_paint(canvas, fill)
 
-    sk_paint_set_color(fill, sk_color_set_argb(0xFF, 0x00, 0xFF, 0xFF))
+    sk_paint_set_color(fill, sk_color_set_argb(0xFF, 0xD0, 0x80, 0x80))
     rect = sk_rect_t(50, 50, w - 50, h - 50)
     sk_canvas_draw_rect(canvas, Ref(rect), fill)
+
+    textpaint = sk_paint_new()
+    sk_paint_set_color(textpaint, sk_color_set_argb(0xFF, 0x00, 0x00, 0x00))
+    # sk_paint_set_antialias(textpaint, true)
+    text = "Hello, Skia!"
+    fontstyle = sk_fontstyle_new(SK_FONT_STYLE_NORMAL_WEIGHT, SK_FONT_STYLE_NORMAL_WIDTH, UPRIGHT_SK_FONT_STYLE_SLANT)
+    typeface = sk_typeface_create_from_name("Arial", fontstyle)
+    font = sk_font_new()
+    sk_font_set_typeface(font, typeface)
+    sk_font_set_size(font, 24.0)
+    sk_canvas_draw_simple_text(canvas, pointer(text), sizeof(text), UTF8_SK_TEXT_ENCODING, 10.0, 35.0, font, textpaint)
 
     sk_paint_delete(fill)
     sk_surface_unref(surface)
@@ -76,8 +87,8 @@ end
 
 function onImageSize(hwnd, width, height)::LRESULT
     global _dib, _pbits
-    @info "onImageSize" hwnd width height
-    bmih = BITMAPINFOHEADER(sizeof(BITMAPINFOHEADER), width, height, 1, 32, BI_RGB, 0, 0, 0, 0, 0) |> Ref
+    @info "onImageSize" hwnd width -1*height
+    bmih = BITMAPINFOHEADER(sizeof(BITMAPINFOHEADER), width, -1*height, 1, 32, BI_RGB, 0, 0, 0, 0, 0) |> Ref
     bmpinfo = BITMAPINFO(bmih[], (RGBQUAD(),)) |> Ref
     hdc = GetDC(hwnd)
     if _dib != C_NULL; DeleteObject(_dib) end

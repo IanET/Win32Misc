@@ -6,6 +6,8 @@ using CEnum
 
 const LibSkiaSharp = "libSkiaSharp.dll"
 
+const SK_FONT_STYLE_NORMAL_WEIGHT = 400
+const SK_FONT_STYLE_NORMAL_WIDTH = 5
 
 const intptr_t = Clonglong
 
