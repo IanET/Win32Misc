@@ -16,19 +16,18 @@ macro ★_str(s) parse(Int, s) |> StarSize end
 const IntOrStarSize = Union{Int, StarSize}
 
 @kwdef mutable struct GridLayout
-    hwnd::HWND = HWND(0)
     grid::Matrix{Int} = Matrix(undef, 0, 0)
     rowHeights::Vector{IntOrStarSize} = []
     colWidths::Vector{IntOrStarSize} = []
 end
 
-function GridLayout(hwnd::HWND, grid::Matrix{Int})
+function GridLayout(grid::Matrix{Int})
     rows, cols = size(grid)
     rowheights = [StarSize(1) for _ in 1:rows]
     colwidths = [StarSize(1) for _ in 1:cols]
-    return GridLayout(hwnd, grid, rowheights, colwidths)
+    return GridLayout(grid, rowheights, colwidths)
 end
-GridLayout(hwnd::HWND, v::Vector{Int}) = GridLayout(hwnd, reshape(v, 1, length(v)))
+GridLayout(v::Vector{Int}) = GridLayout(reshape(v, 1, length(v)))
 
 union(rc1::RECT, rc2::RECT) = RECT(min(rc1.left, rc2.left), min(rc1.top, rc2.top), max(rc1.right, rc2.right), max(rc1.bottom, rc2.bottom))
 
@@ -48,9 +47,9 @@ end
 # Simple grid layout supporting pixel and star sizes for each row and column
 # Rowspan and colspan supported by using the same id in multiple places (total size is union of all cells)
 # Invalid control ids can be used for padding
-function layout(gl::GridLayout)
+function layout(hwnd::HWND, gl::GridLayout)
     rcparent_ref = RECT() |> Ref
-    W32.GetClientRect(gl.hwnd, rcparent_ref)
+    W32.GetClientRect(hwnd, rcparent_ref)
     rcparent = rcparent_ref[]
     gridrows, gridcols = size(gl.grid)
 
@@ -59,12 +58,8 @@ function layout(gl::GridLayout)
 
     # Measure 
     idrects = Dict{Int, RECT}()
-
-    isstarsize(x) = x isa StarSize
-
     hstars, hfixed = count(gl.rowHeights)
     wstars, wfixed = count(gl.colWidths)
-
     starheight = hstars != 0 ? ((rcparent.bottom - rcparent.top) - hfixed) ÷ hstars : 0
     starwidth = wstars != 0 ? ((rcparent.right - rcparent.left) - wfixed) ÷ wstars : 0
 
@@ -79,7 +74,7 @@ function layout(gl::GridLayout)
             h = rowheight isa StarSize ? Int(rowheight) * starheight : rowheight
             rcchild = RECT(x, y, x+w, y+h)
             id = gl.grid[i, j]
-            rcchild = union(get(idrects, id, rcchild), rcchild)
+            rcchild = union(get(idrects, id, rcchild), rcchild) # union of all cells with the same id
             idrects[id] = rcchild
             x += w
         end
@@ -89,7 +84,7 @@ function layout(gl::GridLayout)
     # Arrange
     for id in keys(idrects)
         sz = idrects[id]
-        child = W32.GetDlgItem(gl.hwnd, id)
+        child = W32.GetDlgItem(hwnd, id)
         if child != HWND(0)
             W32.SetWindowPos(child, HWND(0), sz.left, sz.top, sz.right-sz.left, sz.bottom-sz.top, W32.SWP_NOZORDER)
         end
