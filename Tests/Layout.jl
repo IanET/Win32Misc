@@ -58,12 +58,8 @@ function layout(hwnd::HWND, gl::GridLayout)
 
     # Measure 
     idrects = Dict{Int, RECT}()
-
-    isstarsize(x) = x isa StarSize
-
     hstars, hfixed = count(gl.rowHeights)
     wstars, wfixed = count(gl.colWidths)
-
     starheight = hstars != 0 ? ((rcparent.bottom - rcparent.top) - hfixed) ÷ hstars : 0
     starwidth = wstars != 0 ? ((rcparent.right - rcparent.left) - wfixed) ÷ wstars : 0
 
@@ -78,7 +74,7 @@ function layout(hwnd::HWND, gl::GridLayout)
             h = rowheight isa StarSize ? Int(rowheight) * starheight : rowheight
             rcchild = RECT(x, y, x+w, y+h)
             id = gl.grid[i, j]
-            rcchild = union(get(idrects, id, rcchild), rcchild)
+            rcchild = union(get(idrects, id, rcchild), rcchild) # union of all cells with the same id
             idrects[id] = rcchild
             x += w
         end
