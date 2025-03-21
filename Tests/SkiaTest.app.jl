@@ -40,12 +40,12 @@ _dib::HBITMAP = C_NULL
 _pbits::Ptr{Cvoid} = C_NULL
 
 function onImageCreate(hwnd)::LRESULT
-    @info "onImageCreate" hwnd
+    # @info "onImageCreate" hwnd
     return 0
 end
 
 function onImageDestroy(hwnd)::LRESULT
-    @info "onImageDestroy" hwnd
+    # @info "onImageDestroy" hwnd
     return 0
 end
 
@@ -133,7 +133,6 @@ end
 
 function createImageWindow(parent, id, x, y, w, h)
     classname = L"ImageClass"
-
     wc = WNDCLASSW(
         CS_HREDRAW | CS_VREDRAW, 
         @cfunction(imageWndProc, LRESULT, (HWND, UINT, WPARAM, LPARAM)), 
