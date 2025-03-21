@@ -25,7 +25,17 @@ tostring(v::AbstractArray{Cwchar_t}) = transcode(String, @view v[begin:findfirst
 tolparam(s::String) = s |> cwstring |> pointer |> LPARAM
 Base.Tuple(v::MemoryRef{UInt16}, len) = copyto!(zeros(eltype(v), len), v.mem) |> Tuple
 
-_layout::GridLayout = GridLayout()
+_layout = GridLayout( 
+    [   
+        GAP     GAP         GAP         GAP         GAP    
+        GAP     IDC_IMAGE   IDC_IMAGE   IDC_IMAGE   GAP
+        GAP     GAP         GAP         GAP         GAP    
+        GAP     GAP         IDC_OK      IDC_CANCEL  GAP 
+        GAP     GAP         GAP         GAP         GAP    
+    ], 
+    [5, ★"1", 5, 30, 5],   # row heights
+    [5, ★"1", 75, 75, 5])  # col widths
+
 _dib::HBITMAP = C_NULL
 _pbits::Ptr{Cvoid} = C_NULL
 
@@ -57,7 +67,7 @@ function skiaDraw(w, h)
     textpaint = sk_paint_new()
     sk_paint_set_color(textpaint, sk_color_set_argb(0xFF, 0x00, 0x00, 0x00))
     # sk_paint_set_antialias(textpaint, true)
-    text = "Hello, Skia!"
+    text = "Hello, World!"
     fontstyle = sk_fontstyle_new(SK_FONT_STYLE_NORMAL_WEIGHT, SK_FONT_STYLE_NORMAL_WIDTH, UPRIGHT_SK_FONT_STYLE_SLANT)
     typeface = sk_typeface_create_from_name("Arial", fontstyle)
     font = sk_font_new()
@@ -147,24 +157,11 @@ function onCreate(hwnd)
     SendMessageW(ok, WM_SETFONT, WPARAM(hfont), LPARAM(TRUE))
     cancel = CreateWindowExW(0, L"BUTTON", L"Cancel", WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_TABSTOP, 20, 20, 100, 100, hwnd, HMENU(IDC_CANCEL), HINST, C_NULL)
     SendMessageW(cancel, WM_SETFONT, WPARAM(hfont), LPARAM(TRUE))
-
-
-    global _layout = GridLayout(hwnd, 
-        [   
-            GAP     GAP         GAP         GAP         GAP    
-            GAP     IDC_IMAGE   IDC_IMAGE   IDC_IMAGE   GAP
-            GAP     GAP         GAP         GAP         GAP    
-            GAP     GAP         IDC_OK      IDC_CANCEL  GAP 
-            GAP     GAP         GAP         GAP         GAP    
-        ], 
-        [5, ★"1", 5, 30, 5],   # row heights
-        [5, ★"1", 75, 75, 5])  # col widths
-
     return 0
 end
 
 function onSize(hwnd, width, height)
-    layout(_layout)
+    layout(hwnd, _layout)
     return 0
 end
 
