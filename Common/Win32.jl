@@ -845,6 +845,10 @@ const HALFTONE = 0x00000004
 const BI_RGB = 0
 const DIB_RGB_COLORS = 0
 
+const SIZE_RESTORED = 0
+const SIZE_MINIMIZED = 1
+const SIZE_MAXIMIZED = 2
+
 struct tagWNDCLASSW
     style::UINT
     lpfnWndProc::WNDPROC
