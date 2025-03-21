@@ -217,7 +217,6 @@ end
 
 function createMainWindow()
     classname = L"LayoutTestClass"
-
     wc = WNDCLASSW(
         CS_HREDRAW | CS_VREDRAW, 
         @cfunction(appWndProc, LRESULT, (HWND, UINT, WPARAM, LPARAM)), 
