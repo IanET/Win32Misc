@@ -3,6 +3,8 @@ using LibBaseTsd, CEnum, Sockets
 include("../common/Win32.jl")
 using .W32
 
+import Base:Threads.@threads
+
 const Iphlpapi = "iphlpapi.dll"
 
 @kwdef struct IPAddr
@@ -40,4 +42,18 @@ ip = ip"192.168.139.1".host |> hton |> IPAddr
 
 reply = IP_ECHO_REPLY() |> Ref
 res = IcmpSendEcho(hndl, ip, C_NULL, 0, C_NULL, reply, sizeof(reply), 1000)
+@info "IcmpSendEcho" res reply[].RoundTripTime reply[].Status
 
+@threads for i in 1:254
+    name = "?"
+    addr = IPv4("192.168.139.$i")
+    local reply = IP_ECHO_REPLY() |> Ref
+    local res = IcmpSendEcho(hndl, addr.host |> hton |> IPAddr, C_NULL, 0, C_NULL, reply, sizeof(reply), 1000)
+    if res != 0
+        name = getnameinfo(addr)
+        @info "IcmpSendEcho" addr res name reply[].RoundTripTime reply[].Status
+    end
+end
+
+
+IcmpCloseHandle(hndl)
