@@ -20,7 +20,9 @@ const DNS_TYPE_PTR = 0x000C
 const DNS_TYPE_TXT = 0x0010
 const DNS_TYPE_SRV = 0x0021
 const DNS_TYPE_ALL = 0x00FF
+const DNS_TYPE_NSEC = 0x002F
 const MAX_CNAME_LEN = 256
+
 const ERROR_SUCCESS = 0x00000000
 const ERROR_INVALID_PARAMETER = 0x00000057
 const ERROR_CANCELLED = 0x000004c7
@@ -103,8 +105,14 @@ function string_from_pwchar(pwstr::LPWSTR)::String
     return transcode_to_str(@view str[begin:inull])
 end
 
+function transcode_to_str(wstr::MemoryRef{WCHAR})::String
+    izero = findfirst(isequal(WCHAR(0)), wstr.mem)
+    return transcode(String, @view wstr.mem[begin:izero-1])
+end
+
 _calls::Int = 0
-_records::Int = 0
+# _records::Int = 0
+_records::Dict{IP4_ADDRESS, String} = Dict{IP4_ADDRESS, String}()
 
 function queryCallback(pQueryContext::PVOID, pQueryHandle::Ptr{MDNS_QUERY_HANDLE}, pQueryResults::Ptr{DNS_QUERY_RESULT})::Cvoid
     try
@@ -113,26 +121,35 @@ function queryCallback(pQueryContext::PVOID, pQueryHandle::Ptr{MDNS_QUERY_HANDLE
         prec = res.pQueryRecords
         # @info "Query callback invoked" res prec
 
+        if res.QueryStatus == ERROR_CANCELLED
+            @info "Query cancelled"
+            return nothing
+        end
+
         while prec != C_NULL
-            global _records += 1
+            # global _records += 1
             rec = unsafe_load(prec)
             name = string_from_pwchar(rec.pName)
 
             if rec.wType == DNS_TYPE_PTR
                 ptrrec = unsafe_load(Ptr{DNS_RECORD_PTR}(prec))
                 host = string_from_pwchar(ptrrec.pNameHost)
-                @info "PTR record" name host
+                # @info "PTR record" name host
             elseif rec.wType == DNS_TYPE_A
                 arec = unsafe_load(Ptr{DNS_RECORD_A}(prec))
-                addr = arec.IpAddress |> ipv4_string
-                @info "A record" name addr
+                addr = arec.IpAddress
+                if _records.keys ∌ addr
+                    _records[addr] = name
+                    @info "A record" name ipv4_string(addr)
+                end
+                # @info "A record" name addr
             elseif rec.wType == DNS_TYPE_SRV
                 srvrec = unsafe_load(Ptr{DNS_RECORD_SRV}(prec))
                 target = string_from_pwchar(srvrec.pNameTarget)
-                @info "SRV record" name target
+                # @info "SRV record" name target
             elseif rec.wType == DNS_TYPE_TXT
                 txtrec = unsafe_load(Ptr{DNS_RECORD_TXT}(prec))
-                @info "TXT record" name txtrec.dwStringCount
+                # @info "TXT record" name txtrec.dwStringCount
             else
                 @info "Other record" rec.wType name
             end
@@ -146,7 +163,11 @@ function queryCallback(pQueryContext::PVOID, pQueryHandle::Ptr{MDNS_QUERY_HANDLE
     return nothing
 end
 
-service = L"_googlecast._tcp.local"
+# service = L"_googlecast._tcp.local"
+# service = L"_workstation._tcp.local"
+# service = L"_ssh._tcp.local"
+service = L"_http._tcp.local"
+# service = L"_udisks-ssh._tcp.local"
 request = MDNS_QUERY_REQUEST(
     Query = pointer(service), 
     pQueryCallback = @cfunction(queryCallback, Cvoid, (PVOID, Ptr{MDNS_QUERY_HANDLE}, Ptr{DNS_QUERY_RESULT}))
@@ -154,20 +175,20 @@ request = MDNS_QUERY_REQUEST(
 
 handle = MDNS_QUERY_HANDLE() |> Ref
 
-@info "Starting multicast query..."
+@info "Starting multicast query: " transcode_to_str(service)
 @preserve service status = DnsStartMulticastQuery(request, handle)
 # error = GetLastError()
 # @show status error
 @assert status == ERROR_SUCCESS
-@info "Multicast query started."
+@info "Multicast query started"
 
 # SleepEx(10*1000, TRUE)
 sleep(10)
 
 @info "Stopping multicast query..."
 DnsStopMulticastQuery(handle)
-@info "Multicast query stopped."
-@info "Number of calls to query callback: " _calls _records
+@info "Multicast query stopped"
+@info "Number of calls to query callback: " _calls length(_records)
 
 sleep(1)
 
