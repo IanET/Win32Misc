@@ -42,30 +42,24 @@ IcmpSendEcho(IcmpHandle, DestinationAddress, RequestData, RequestSize, RequestOp
 end
 
 function main(args)
-
-    timeout = 100
-    if length(args) > 0
-        timeout = parse(Int, args[1])
+    if length(args) != 2
+        addrs = getipaddrs(IPv4; loopback=false)
+        @info "Addresses" addrs
+        println("Usage: Ping <ipaddr> <timeout>")
+        return
     end
-    @info "main" timeout
 
-
-    addrs = getipaddrs(IPv4; loopback=false)
-    ip = ip"192.168.139.1".host |> hton |> IPAddr
-
-    # reply = IP_ECHO_REPLY() |> Ref
-    # res = IcmpSendEcho(hndl, ip, C_NULL, 0, C_NULL, reply, sizeof(reply), 1000)
-    # @info "IcmpSendEcho" res reply[].RoundTripTime reply[].Status
+    baseaddr = IPv4(args[1])
+    baseaddr = IPv4(baseaddr.host & 0xFFFFFF00)
+    timeout = parse(Int, args[2])
+    @info "Ping" baseaddr timeout
 
     chan = Channel{Echo}(Inf)
     replies = Dict{IPv4, Echo}()
-    # replies = 0
-    # sent = Threads.Atomic{Int}(0)
     
     @spawn while true
         try
             echo = take!(chan)
-            # replies += 1
             if echo === nothing; break end
             name = echo.name
             addr = echo.addr
@@ -79,18 +73,15 @@ function main(args)
     
     hndl = IcmpCreateFile()
     @threads for i in 1:254
-        # sent[] += 1
         name = "?"
-        addr = IPv4("192.168.139.$i")
-        # println("$i: $addr\n")
+        addr = IPv4(baseaddr.host & 0xFFFFFF00 | i)
         @info addr
         reply = IP_ECHO_REPLY() |> Ref
         res = IcmpSendEcho(hndl, addr.host |> hton |> IPAddr, C_NULL, 0, C_NULL, reply, sizeof(reply), timeout)
         if res != 0
             name = getnameinfo(addr)
             rtt = Int(reply[].RoundTripTime)
-            status = reply[].Status
-            # @info "IcmpSendEcho" addr res name rtt status
+            # status = reply[].Status
             push!(chan, Echo(name, addr, rtt))
         end
     end
@@ -109,11 +100,6 @@ function main(args)
         @info addr name rtt
     end
 
-    # for (addr, echo) in replies
-    #     name = echo.name
-    #     rtt = echo.rtt
-    #     @info addr name rtt
-    # end
 end
 
 main(ARGS)
