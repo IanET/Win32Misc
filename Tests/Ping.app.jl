@@ -3,7 +3,7 @@ using LibBaseTsd, CEnum, Sockets
 include("../common/Win32.jl")
 using .W32
 
-import Base:Threads.@threads, Threads.@spawn
+import Base:Threads.@threads, Threads.@spawn, Threads.Atomic
 
 const Iphlpapi = "iphlpapi.dll"
 
@@ -67,15 +67,20 @@ function main(args)
             @info "Reply" name addr rtt
             replies[addr] = echo
         catch e
+            if e isa InvalidStateException; break end
             @error "Error" e
+            break
         end
     end
     
     hndl = IcmpCreateFile()
+    count = Atomic{Int}(0)
     @threads for i in 1:254
         name = "?"
         addr = IPv4(baseaddr.host & 0xFFFFFF00 | i)
-        @info addr
+        count[] += 1
+        c = count[]
+        @info "Sent #$c ($addr)"
         reply = IP_ECHO_REPLY() |> Ref
         res = IcmpSendEcho(hndl, addr.host |> hton |> IPAddr, C_NULL, 0, C_NULL, reply, sizeof(reply), timeout)
         if res != 0
@@ -89,17 +94,18 @@ function main(args)
     close(chan)
 
     println()
-    @info "Replies" length(replies)
-    println()
+    @info "Replies: $(length(replies))"
 
     sortbyaddr(replies) = sort(replies, by = x -> x[1])
     sorted = collect(replies) |> sortbyaddr
+
     for (addr, echo) in sorted
         name = echo.name
         rtt = echo.rtt
-        @info addr name rtt
+        @info "$addr $name ($(rtt)ms)"
     end
 
+    nothing
 end
 
 main(ARGS)
