@@ -41,8 +41,14 @@ IcmpSendEcho(IcmpHandle, DestinationAddress, RequestData, RequestSize, RequestOp
     rtt::Int = 0
 end
 
-function main()
-    @info "main"
+function main(args)
+
+    timeout = 100
+    if length(args) > 0
+        timeout = parse(Int, args[1])
+    end
+    @info "main" timeout
+
 
     addrs = getipaddrs(IPv4; loopback=false)
     ip = ip"192.168.139.1".host |> hton |> IPAddr
@@ -52,17 +58,23 @@ function main()
     # @info "IcmpSendEcho" res reply[].RoundTripTime reply[].Status
 
     chan = Channel{Echo}(Inf)
-    replies = 0
+    replies = Dict{IPv4, Echo}()
+    # replies = 0
     # sent = Threads.Atomic{Int}(0)
     
     @spawn while true
-        echo = take!(chan)
-        replies += 1
-        if echo === nothing; break end
-        name = echo.name
-        addr = echo.addr
-        rtt = echo.rtt
-        @info "Reply" name addr rtt
+        try
+            echo = take!(chan)
+            # replies += 1
+            if echo === nothing; break end
+            name = echo.name
+            addr = echo.addr
+            rtt = echo.rtt
+            @info "Reply" name addr rtt
+            replies[addr] = echo
+        catch e
+            @error "Error" e
+        end
     end
     
     hndl = IcmpCreateFile()
@@ -71,9 +83,9 @@ function main()
         name = "?"
         addr = IPv4("192.168.139.$i")
         # println("$i: $addr\n")
-        @info "Send" addr
+        @info addr
         reply = IP_ECHO_REPLY() |> Ref
-        res = IcmpSendEcho(hndl, addr.host |> hton |> IPAddr, C_NULL, 0, C_NULL, reply, sizeof(reply), 100)
+        res = IcmpSendEcho(hndl, addr.host |> hton |> IPAddr, C_NULL, 0, C_NULL, reply, sizeof(reply), timeout)
         if res != 0
             name = getnameinfo(addr)
             rtt = Int(reply[].RoundTripTime)
@@ -83,9 +95,25 @@ function main()
         end
     end
     IcmpCloseHandle(hndl)
-
-    @info "Replies" replies
     close(chan)
+
+    println()
+    @info "Replies" length(replies)
+    println()
+
+    sortbyaddr(replies) = sort(replies, by = x -> x[1])
+    sorted = collect(replies) |> sortbyaddr
+    for (addr, echo) in sorted
+        name = echo.name
+        rtt = echo.rtt
+        @info addr name rtt
+    end
+
+    # for (addr, echo) in replies
+    #     name = echo.name
+    #     rtt = echo.rtt
+    #     @info addr name rtt
+    # end
 end
 
-main()
+main(ARGS)
