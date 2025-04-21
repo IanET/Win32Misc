@@ -33,6 +33,7 @@ const PIP_ECHO_REPLY = Ptr{IP_ECHO_REPLY}
 
 IcmpCreateFile() = @ccall Iphlpapi.IcmpCreateFile()::HANDLE
 IcmpCloseHandle(h) = @ccall Iphlpapi.IcmpCloseHandle(h::HANDLE)::BOOL
+# Seems like 1000 is the min
 IcmpSendEcho(IcmpHandle, DestinationAddress, RequestData, RequestSize, RequestOptions, ReplyBuffer, ReplySize, Timeout) = @ccall Iphlpapi.IcmpSendEcho(IcmpHandle::HANDLE, DestinationAddress::IPAddr, RequestData::LPVOID, RequestSize::WORD, RequestOptions::PIP_OPTION_INFORMATION, ReplyBuffer::LPVOID, ReplySize::DWORD, Timeout::DWORD)::DWORD
 
 @kwdef struct Echo
@@ -75,15 +76,16 @@ function main(args)
     
     hndl = IcmpCreateFile()
     count = Atomic{Int}(0)
-    @threads for i in 1:254
+    @time @threads for i in 1:254
         name = "?"
         addr = IPv4(baseaddr.host & 0xFFFFFF00 | i)
         count[] += 1
         c = count[]
         @info "Sent #$c ($addr)"
         reply = IP_ECHO_REPLY() |> Ref
-        res = IcmpSendEcho(hndl, addr.host |> hton |> IPAddr, C_NULL, 0, C_NULL, reply, sizeof(reply), timeout)
-        if res != 0
+        haddr = addr.host |> hton |> IPAddr
+        res = IcmpSendEcho(hndl, haddr, C_NULL, 0, C_NULL, reply, sizeof(reply), timeout)
+        if res != 0 && reply[].Address.S_addr == haddr.S_addr
             name = getnameinfo(addr)
             rtt = Int(reply[].RoundTripTime)
             # status = reply[].Status
