@@ -76,7 +76,7 @@ function main(args)
     
     hndl = IcmpCreateFile()
     count = Atomic{Int}(0)
-    @time @threads for i in 1:254
+    @threads for i in 1:254
         name = "?"
         addr = IPv4(baseaddr.host & 0xFFFFFF00 | i)
         count[] += 1
