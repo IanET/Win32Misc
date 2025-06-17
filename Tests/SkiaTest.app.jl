@@ -189,7 +189,7 @@ end
 
 # Modify a c-struct in place
 Base.fieldoffset(T::Type, field::Symbol) = fieldoffset(T, Base.fieldindex(T, field))
-unsafe_modify_cstruct(p::Ptr{T}, field::Symbol, v::V) where {T, V} = unsafe_store!(Ptr{V}(p + fieldoffset(T, field)), v)
+unsafe_modify_cstruct(pstruct::Ptr{T}, field::Symbol, newval::V) where {T, V} = unsafe_store!(Ptr{V}(pstruct + fieldoffset(T, field)), newval)
 
 function onGetMinMaxInfo(hwnd, pmmi::Ptr{MINMAXINFO})
     unsafe_modify_cstruct(pmmi, :ptMinTrackSize, POINT(MIN_WIDTH, MIN_HEIGHT))
