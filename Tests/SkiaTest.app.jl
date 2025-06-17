@@ -83,12 +83,12 @@ function onImagePaint(hwnd)::LRESULT
     @info "onImagePaint" hwnd
     ps = PAINTSTRUCT() |> Ref
     hdc = BeginPaint(hwnd, ps)
-    w = ps[].rcPaint.right - ps[].rcPaint.left
-    h = ps[].rcPaint.bottom - ps[].rcPaint.top
-    skiaDraw(w, h)
+    rcclient = RECT() |> Ref
+    GetClientRect(hwnd, rcclient)
+    skiaDraw(rcclient[].right - rcclient[].left, rcclient[].bottom - rcclient[].top) # draw the whole thing
     hdcmem = CreateCompatibleDC(hdc)
     hbmpold = SelectObject(hdcmem, _dib)
-    BitBlt(hdc, 0, 0, w, h, hdcmem, 0, 0, SRCCOPY)
+    BitBlt(hdc, ps[].rcPaint.left, ps[].rcPaint.top, ps[].rcPaint.right - ps[].rcPaint.left, ps[].rcPaint.bottom - ps[].rcPaint.top, hdcmem, ps[].rcPaint.left, ps[].rcPaint.top, SRCCOPY)
     SelectObject(hdcmem, hbmpold)
     DeleteDC(hdcmem)
     EndPaint(hwnd, ps)
@@ -98,6 +98,7 @@ end
 function onImageSize(hwnd, width, height)::LRESULT
     global _dib, _pbits
     @info "onImageSize" hwnd width height
+    if width <= 0 || height <= 0; return 0 end
     bmih = BITMAPINFOHEADER(sizeof(BITMAPINFOHEADER), width, -1*height, 1, 32, BI_RGB, 0, 0, 0, 0, 0) |> Ref
     bmpinfo = BITMAPINFO(bmih[], (RGBQUAD(),)) |> Ref
     hdc = GetDC(hwnd)
@@ -159,7 +160,10 @@ function onCreate(hwnd)
     return 0
 end
 
-function onSize(hwnd, width, height)
+function onSize(hwnd, wparam, width, height)
+    @info "onSize" hwnd wparam width height
+    if wparam == SIZE_MINIMIZED; return 0 end
+    if width <= 0 || height <= 0; return 0 end
     layout(hwnd, _layout)
     return 0
 end
@@ -200,7 +204,7 @@ function appWndProc(hwnd::HWND, umsg::UINT, wparam::WPARAM, lparam::LPARAM)::LRE
         elseif umsg == WM_DESTROY
             return onDestroy(hwnd)
         elseif umsg == WM_SIZE
-            return onSize(hwnd, LOWORD(lparam), HIWORD(lparam))
+            return onSize(hwnd, wparam, LOWORD(lparam), HIWORD(lparam))
         elseif umsg == WM_COMMAND
             return onCommand(hwnd, LOWORD(wparam), HIWORD(wparam))
         elseif umsg == WM_GETMINMAXINFO
