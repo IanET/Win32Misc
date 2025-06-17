@@ -188,14 +188,10 @@ function onCommand(hwnd, id, code)
 end
 
 # Modify a c-struct in place
-unsafe_modify_cstruct(p::Ptr{T}, field::Symbol, v::V) where {T, V} = Base.fieldindex(T, field) |> fi -> fieldoffset(T, fi) |> fo -> Ptr{V}(p + fo) |> fp -> unsafe_store!(fp, v)
+Base.fieldoffset(T::Type, field::Symbol) = fieldoffset(T, Base.fieldindex(T, field))
+unsafe_modify_cstruct(p::Ptr{T}, field::Symbol, v::V) where {T, V} = unsafe_store!(Ptr{V}(p + fieldoffset(T, field)), v)
 
 function onGetMinMaxInfo(hwnd, pmmi::Ptr{MINMAXINFO})
-    # mmi = unsafe_load(pmmi)
-    # mmiinew = MINMAXINFO(mmi.ptReserved, mmi.ptMaxSize, mmi.ptMaxTrackSize, POINT(MIN_WIDTH, MIN_HEIGHT))
-    # unsafe_store!(pmmi, mmiinew)
-    # # @info unsafe_load(pmmi)
-
     unsafe_modify_cstruct(pmmi, :ptMinTrackSize, POINT(MIN_WIDTH, MIN_HEIGHT))
     # @info unsafe_load(pmmi)
     return 0
