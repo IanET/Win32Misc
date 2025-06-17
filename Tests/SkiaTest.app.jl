@@ -20,10 +20,13 @@ const MIN_HEIGHT = 200
 const BLUE_GRAY_BRUSH = CreateSolidBrush(RGB(0xD0, 0xD0, 0xE0))
 const HINST::HINSTANCE = GetModuleHandleW(C_NULL)
 
+# Helpers
 cwstring(s) = cconvert(Cwstring, s)
 tostring(v::AbstractArray{Cwchar_t}) = transcode(String, @view v[begin:findfirst(iszero, v)-1])
 tolparam(s::String) = s |> cwstring |> pointer |> LPARAM
 Base.Tuple(v::MemoryRef{UInt16}, len) = copyto!(zeros(eltype(v), len), v.mem) |> Tuple
+Base.fieldoffset(T::Type, field::Symbol) = fieldoffset(T, Base.fieldindex(T, field))
+unsafe_modify_cstruct(pstruct::Ptr{T}, field::Symbol, newval::V) where {T, V} = unsafe_store!(Ptr{V}(pstruct + fieldoffset(T, field)), newval)
 
 _layout = GridLayout( 
     [   
@@ -186,10 +189,6 @@ function onCommand(hwnd, id, code)
     end
     return 0
 end
-
-# Modify a c-struct in place
-Base.fieldoffset(T::Type, field::Symbol) = fieldoffset(T, Base.fieldindex(T, field))
-unsafe_modify_cstruct(pstruct::Ptr{T}, field::Symbol, newval::V) where {T, V} = unsafe_store!(Ptr{V}(pstruct + fieldoffset(T, field)), newval)
 
 function onGetMinMaxInfo(hwnd, pmmi::Ptr{MINMAXINFO})
     unsafe_modify_cstruct(pmmi, :ptMinTrackSize, POINT(MIN_WIDTH, MIN_HEIGHT))
