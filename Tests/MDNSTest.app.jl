@@ -111,7 +111,6 @@ function transcode_to_str(wstr::MemoryRef{WCHAR})::String
 end
 
 _calls::Int = 0
-# _records::Int = 0
 _records::Dict{IP4_ADDRESS, String} = Dict{IP4_ADDRESS, String}()
 
 function queryCallback(pQueryContext::PVOID, pQueryHandle::Ptr{MDNS_QUERY_HANDLE}, pQueryResults::Ptr{DNS_QUERY_RESULT})::Cvoid
@@ -127,7 +126,6 @@ function queryCallback(pQueryContext::PVOID, pQueryHandle::Ptr{MDNS_QUERY_HANDLE
         end
 
         while prec != C_NULL
-            # global _records += 1
             rec = unsafe_load(prec)
             name = string_from_pwchar(rec.pName)
 
@@ -168,6 +166,7 @@ end
 # service = L"_ssh._tcp.local"
 service = L"_http._tcp.local"
 # service = L"_udisks-ssh._tcp.local"
+
 request = MDNS_QUERY_REQUEST(
     Query = pointer(service), 
     pQueryCallback = @cfunction(queryCallback, Cvoid, (PVOID, Ptr{MDNS_QUERY_HANDLE}, Ptr{DNS_QUERY_RESULT}))
@@ -176,6 +175,7 @@ request = MDNS_QUERY_REQUEST(
 handle = MDNS_QUERY_HANDLE() |> Ref
 
 @info "Starting multicast query: " transcode_to_str(service)
+
 @preserve service status = DnsStartMulticastQuery(request, handle)
 # error = GetLastError()
 # @show status error
