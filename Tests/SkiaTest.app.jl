@@ -1,13 +1,18 @@
+@info "SkiaTest"
 using LibBaseTsd
 
+# @info "Win32"
 include("../common/Win32.jl")
 using .W32
 
+# @info "LibSkia"
 include("../common/LibSkia.jl")
 using .LibSkia
 
+# @info "Layout"
 include("Layout.jl")
 
+# @info "Base"
 import Base.cconvert, .GC.@preserve
 
 const GAP = -1
@@ -28,7 +33,8 @@ Base.Tuple(v::MemoryRef{UInt16}, len) = copyto!(zeros(eltype(v), len), v.mem) |>
 size_t(i::Int64) = reinterpret(UInt64, i) |> SIZE_T
 flush_ws() = SetProcessWorkingSetSize(GetCurrentProcess(), size_t(-1), size_t(-1))
 Base.fieldoffset(T::Type, field::Symbol) = fieldoffset(T, Base.fieldindex(T, field))
-unsafe_modify_cstruct(pstruct::Ptr{T}, field::Symbol, newval::V) where {T, V} = unsafe_store!(Ptr{V}(pstruct + fieldoffset(T, field)), newval)
+Base.unsafe_store!(newval) = ptr -> unsafe_store!(ptr, newval)
+unsafe_modify_cstruct(pstruct::Ptr{T}, field::Symbol, newval::V) where {T, V} = Ptr{V}(pstruct + fieldoffset(T, field)) |> unsafe_store!(newval)
 
 _layout = GridLayout( 
     [   
