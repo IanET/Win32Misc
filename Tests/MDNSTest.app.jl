@@ -163,8 +163,8 @@ end
 
 # service = L"_googlecast._tcp.local"
 # service = L"_workstation._tcp.local"
-# service = L"_ssh._tcp.local"
-service = L"_http._tcp.local"
+service = L"_ssh._tcp.local"
+# service = L"_http._tcp.local"
 # service = L"_udisks-ssh._tcp.local"
 
 request = MDNS_QUERY_REQUEST(
