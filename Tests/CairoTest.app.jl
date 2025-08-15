@@ -34,7 +34,7 @@ _layout = GridLayout(
     [5, ★"1", 75, 75, 5])  # col widths
 
 _dib::HBITMAP = C_NULL
-_pbits::Ptr{Cvoid} = C_NULL
+_mbits::Matrix{ARGB32} = zeros(ARGB32, 0, 0)
 
 function onImageCreate(hwnd)::LRESULT
     # @info "onImageCreate" hwnd
@@ -47,8 +47,8 @@ function onImageDestroy(hwnd)::LRESULT
 end
 
 function cairoDraw(w, h)
-    m = unsafe_wrap(Array, Ptr{ARGB32}(_pbits), (w, h))
-    surface = CairoImageSurface(m)
+    global _mbits
+    surface = CairoImageSurface(_mbits)
     ctx = CairoContext(surface) 
 
     set_source_rgb(ctx, 1.0, 1.0, 1.0)
@@ -83,7 +83,7 @@ function onImagePaint(hwnd)::LRESULT
 end
 
 function onImageSize(hwnd, width, height)::LRESULT
-    global _dib, _pbits
+    global _dib, _mbits
     @info "onImageSize" hwnd width height
     if width <= 0 || height <= 0; return 0 end
     bmih = BITMAPINFOHEADER(sizeof(BITMAPINFOHEADER), width, -1*height, 1, 32, BI_RGB, 0, 0, 0, 0, 0) |> Ref
@@ -94,7 +94,7 @@ function onImageSize(hwnd, width, height)::LRESULT
     _dib = CreateDIBSection(hdc, bmpinfo, DIB_RGB_COLORS, pbits, C_NULL, 0)
     @assert _dib != C_NULL
     @assert pbits[] != C_NULL
-    _pbits = pbits[]
+    _mbits = unsafe_wrap(Array, Ptr{ARGB32}(pbits[]), (width, height))
     ReleaseDC(hwnd, hdc)
     return 0
 end
