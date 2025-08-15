@@ -34,7 +34,7 @@ _layout = GridLayout(
     [5, ★"1", 75, 75, 5])  # col widths
 
 _dib::HBITMAP = C_NULL
-_mbits::Matrix{ARGB32} = zeros(ARGB32, 0, 0)
+_mbits::Matrix{ARGB32} = [;;]
 
 function onImageCreate(hwnd)::LRESULT
     # @info "onImageCreate" hwnd
