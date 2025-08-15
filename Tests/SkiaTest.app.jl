@@ -24,6 +24,8 @@ cwstring(s) = cconvert(Cwstring, s)
 tostring(v::AbstractArray{Cwchar_t}) = transcode(String, @view v[begin:findfirst(iszero, v)-1])
 tolparam(s::String) = s |> cwstring |> pointer |> LPARAM
 Base.Tuple(v::MemoryRef{UInt16}, len) = copyto!(zeros(eltype(v), len), v.mem) |> Tuple
+size_t(i::Int64) = reinterpret(UInt64, i) |> SIZE_T
+flush_ws() = SetProcessWorkingSetSize(GetCurrentProcess(), size_t(-1), size_t(-1))
 
 _layout = GridLayout( 
     [   
@@ -162,7 +164,10 @@ end
 
 function onSize(hwnd, wparam, width, height)
     @info "onSize" hwnd wparam width height
-    if wparam == SIZE_MINIMIZED; return 0 end
+    if wparam == SIZE_MINIMIZED
+        flush_ws()
+        return 0 
+    end
     if width <= 0 || height <= 0; return 0 end
     layout(hwnd, _layout)
     return 0
@@ -241,8 +246,7 @@ function main()
 
     hwnd = createMainWindow()
     ShowWindow(hwnd, SW_SHOWNORMAL)
-    size_t(i::Int64) = reinterpret(UInt64, i) |> SIZE_T
-    SetProcessWorkingSetSize(GetCurrentProcess(), size_t(-1), size_t(-1))
+    flush_ws()
 
     MsgLoop() do msg
         TranslateMessage(msg)
