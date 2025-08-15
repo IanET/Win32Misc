@@ -58,6 +58,12 @@ function cairoDraw(w, h)
     set_source_rgb(ctx, 1.0, 0, 0)
     arc(ctx, w/2, h/2, 100, 0, 2*pi)
     fill(ctx)
+
+    set_source_rgb(ctx, 0.0, 0.0, 0.0)
+    select_font_face(ctx, "Sans", Cairo.FONT_SLANT_NORMAL, Cairo.FONT_WEIGHT_NORMAL)
+    set_font_size(ctx, 24)
+    move_to(ctx, 0, 20)
+    show_text(ctx, "Testing Cairo")
 end
 
 function onImagePaint(hwnd)::LRESULT
