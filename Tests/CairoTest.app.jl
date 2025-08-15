@@ -218,13 +218,13 @@ function createMainWindow()
         @cfunction(appWndProc, LRESULT, (HWND, UINT, WPARAM, LPARAM)), 
         0, 0, 
         HINST, 
-        LoadIconW(HINSTANCE(0), IDI_INFORMATION), 
-        LoadCursorW(HINSTANCE(0), IDC_ARROW), 
+        LoadIconW(C_NULL, IDI_INFORMATION), 
+        LoadCursorW(C_NULL, IDC_ARROW), 
         HBRUSH(COLOR_WINDOW+1), 
         C_NULL, 
         pointer(classname))
     @preserve classname RegisterClassW(Ref(wc))
-    hwnd = CreateWindowExW(DWORD(0), classname, L"Cairo Test", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 512, 512, HWND(0), HMENU(0), HINST, LPVOID(0))
+    hwnd = CreateWindowExW(DWORD(0), classname, L"Cairo Test", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 512, 512, C_NULL, C_NULL, HINST, C_NULL)
     return hwnd
 end
 
