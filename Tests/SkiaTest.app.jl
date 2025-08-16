@@ -32,9 +32,6 @@ tolparam(s::String) = s |> cwstring |> pointer |> LPARAM
 Base.Tuple(v::MemoryRef{UInt16}, len) = copyto!(zeros(eltype(v), len), v.mem) |> Tuple
 size_t(i::Int64) = reinterpret(UInt64, i) |> SIZE_T
 flush_ws() = SetProcessWorkingSetSize(GetCurrentProcess(), size_t(-1), size_t(-1))
-Base.fieldoffset(T::Type, field::Symbol) = fieldoffset(T, Base.fieldindex(T, field))
-Base.unsafe_store!(newval) = ptr -> unsafe_store!(ptr, newval)
-unsafe_modify_cstruct(pstruct::Ptr{T}, field::Symbol, newval::V) where {T, V} = Ptr{V}(pstruct + fieldoffset(T, field)) |> unsafe_store!(newval)
 
 _layout = GridLayout( 
     [   
