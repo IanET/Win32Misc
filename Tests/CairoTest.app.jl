@@ -180,10 +180,7 @@ function onCommand(hwnd, id, code)
 end
 
 function onGetMinMaxInfo(hwnd, pmmi::Ptr{MINMAXINFO})
-    mmi = unsafe_load(pmmi)
-    mmiinew = MINMAXINFO(mmi.ptReserved, mmi.ptMaxSize, mmi.ptMaxTrackSize, POINT(MIN_WIDTH, MIN_HEIGHT))
-    unsafe_store!(pmmi, mmiinew)
-    # @info unsafe_load(pmmi)
+    unsafe_modify_cstruct(pmmi, :ptMinTrackSize, POINT(MIN_WIDTH, MIN_HEIGHT))
     return 0
 end
 
