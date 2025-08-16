@@ -1,13 +1,18 @@
+@info "SkiaTest"
 using LibBaseTsd
 
+# @info "Win32"
 include("../common/Win32.jl")
 using .W32
 
+# @info "LibSkia"
 include("../common/LibSkia.jl")
 using .LibSkia
 
+# @info "Layout"
 include("Layout.jl")
 
+# @info "Base"
 import Base.cconvert, .GC.@preserve
 
 const GAP = -1
@@ -20,6 +25,7 @@ const MIN_HEIGHT = 200
 const BLUE_GRAY_BRUSH = CreateSolidBrush(RGB(0xD0, 0xD0, 0xE0))
 const HINST::HINSTANCE = GetModuleHandleW(C_NULL)
 
+# Helpers
 cwstring(s) = cconvert(Cwstring, s)
 tostring(v::AbstractArray{Cwchar_t}) = transcode(String, @view v[begin:findfirst(iszero, v)-1])
 tolparam(s::String) = s |> cwstring |> pointer |> LPARAM
@@ -193,10 +199,7 @@ function onCommand(hwnd, id, code)
 end
 
 function onGetMinMaxInfo(hwnd, pmmi::Ptr{MINMAXINFO})
-    mmi = unsafe_load(pmmi)
-    mmiinew = MINMAXINFO(mmi.ptReserved, mmi.ptMaxSize, mmi.ptMaxTrackSize, POINT(MIN_WIDTH, MIN_HEIGHT))
-    unsafe_store!(pmmi, mmiinew)
-    # @info unsafe_load(pmmi)
+    unsafe_modify_cstruct(pmmi, :ptMinTrackSize, POINT(MIN_WIDTH, MIN_HEIGHT))
     return 0
 end
 

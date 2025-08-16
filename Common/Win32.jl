@@ -1138,6 +1138,10 @@ NONCLIENTMETRICSW() = NONCLIENTMETRICSW(sizeof(NONCLIENTMETRICSW), 0, 0, 0, 0, 0
 PAINTSTRUCT() = PAINTSTRUCT(0, 0, RECT(), 0, 0, zeros(BYTE, 32) |> Tuple)
 RGB(r::BYTE, g::BYTE, b::BYTE) = COLORREF(DWORD(b) << 16 | DWORD(g) << DWORD(8) | r)
 
+Base.fieldoffset(T::Type, field::Symbol) = fieldoffset(T, Base.fieldindex(T, field))
+Base.unsafe_store!(newval) = ptr -> unsafe_store!(ptr, newval)
+unsafe_modify_cstruct(pstruct::Ptr{T}, field::Symbol, newval::V) where {T, V} = Ptr{V}(pstruct + fieldoffset(T, field)) |> unsafe_store!(newval)
+
 # Loop until WM_QUIT, yield to tasks
 function MsgLoop(callback::Function)
     rmsg = MSG() |> Ref
