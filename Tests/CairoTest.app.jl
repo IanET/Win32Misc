@@ -1,14 +1,11 @@
-using LibBaseTsd
+using LibBaseTsd, Cairo
 
 include("../common/Win32.jl")
 using .W32
 
-include("../common/LibSkia.jl")
-using .LibSkia
-
 include("Layout.jl")
 
-import Base.cconvert, .GC.@preserve
+import Base.cconvert, .GC.@preserve, ColorTypes.ARGB32
 
 const GAP = -1
 const IDC_IMAGE = 1
@@ -39,7 +36,7 @@ _layout = GridLayout(
     [5, ★"1", 75, 75, 5])  # col widths
 
 _dib::HBITMAP = C_NULL
-_pbits::Ptr{Cvoid} = C_NULL
+_mbits::Matrix{ARGB32} = [;;]
 
 function onImageCreate(hwnd)::LRESULT
     # @info "onImageCreate" hwnd
@@ -51,34 +48,24 @@ function onImageDestroy(hwnd)::LRESULT
     return 0
 end
 
-sk_color_set_argb(a, r, g, b) = ((UInt32(a) << 24) | (UInt32(r) << 16) | (UInt32(g) << 8) | UInt32(b))
+function cairoDraw(w, h)
+    global _mbits
+    surface = CairoImageSurface(_mbits)
+    ctx = CairoContext(surface) 
 
-function skiaDraw(w, h)
-    info = sk_imageinfo_t(C_NULL, w, h, BGRA_8888_SK_COLORTYPE, PREMUL_SK_ALPHATYPE)
-    surface = sk_surface_new_raster_direct(Ref(info), _pbits, w * 4, C_NULL, C_NULL, C_NULL)
-    canvas = sk_surface_get_canvas(surface)
+    set_source_rgb(ctx, 1.0, 1.0, 1.0)
+    rectangle(ctx, 0, 0, w, h)
+    fill(ctx)
 
-    fill = sk_paint_new()
-    sk_paint_set_color(fill, sk_color_set_argb(0xFF, 0xA0, 0xB0, 0xE0))
-    sk_canvas_draw_paint(canvas, fill)
+    set_source_rgb(ctx, 1.0, 0, 0)
+    arc(ctx, w/2, h/2, 100, 0, 2*pi)
+    fill(ctx)
 
-    sk_paint_set_color(fill, sk_color_set_argb(0xFF, 0xD0, 0x80, 0x80))
-    rect = sk_rect_t(50, 50, w - 50, h - 50)
-    sk_canvas_draw_rect(canvas, Ref(rect), fill)
-
-    textpaint = sk_paint_new()
-    sk_paint_set_color(textpaint, sk_color_set_argb(0xFF, 0x00, 0x00, 0x00))
-    # sk_paint_set_antialias(textpaint, true)
-    text = "Hello, World!"
-    fontstyle = sk_fontstyle_new(SK_FONT_STYLE_NORMAL_WEIGHT, SK_FONT_STYLE_NORMAL_WIDTH, UPRIGHT_SK_FONT_STYLE_SLANT)
-    typeface = sk_typeface_create_from_name("Arial", fontstyle)
-    font = sk_font_new()
-    sk_font_set_typeface(font, typeface)
-    sk_font_set_size(font, 24.0)
-    sk_canvas_draw_simple_text(canvas, pointer(text), sizeof(text), UTF8_SK_TEXT_ENCODING, 10.0, 35.0, font, textpaint)
-
-    sk_paint_delete(fill)
-    sk_surface_unref(surface)
+    set_source_rgb(ctx, 0.0, 0.0, 0.0)
+    select_font_face(ctx, "Sans", Cairo.FONT_SLANT_NORMAL, Cairo.FONT_WEIGHT_NORMAL)
+    set_font_size(ctx, 24)
+    move_to(ctx, 0, 20)
+    show_text(ctx, "Testing Cairo")
 end
 
 function onImagePaint(hwnd)::LRESULT
@@ -87,7 +74,7 @@ function onImagePaint(hwnd)::LRESULT
     hdc = BeginPaint(hwnd, ps)
     rcclient = RECT() |> Ref
     GetClientRect(hwnd, rcclient)
-    skiaDraw(rcclient[].right - rcclient[].left, rcclient[].bottom - rcclient[].top) # draw the whole thing
+    cairoDraw(rcclient[].right - rcclient[].left, rcclient[].bottom - rcclient[].top) # draw the whole thing
     hdcmem = CreateCompatibleDC(hdc)
     hbmpold = SelectObject(hdcmem, _dib)
     BitBlt(hdc, ps[].rcPaint.left, ps[].rcPaint.top, ps[].rcPaint.right - ps[].rcPaint.left, ps[].rcPaint.bottom - ps[].rcPaint.top, hdcmem, ps[].rcPaint.left, ps[].rcPaint.top, SRCCOPY)
@@ -98,7 +85,7 @@ function onImagePaint(hwnd)::LRESULT
 end
 
 function onImageSize(hwnd, width, height)::LRESULT
-    global _dib, _pbits
+    global _dib, _mbits
     @info "onImageSize" hwnd width height
     if width <= 0 || height <= 0; return 0 end
     bmih = BITMAPINFOHEADER(sizeof(BITMAPINFOHEADER), width, -1*height, 1, 32, BI_RGB, 0, 0, 0, 0, 0) |> Ref
@@ -109,7 +96,7 @@ function onImageSize(hwnd, width, height)::LRESULT
     _dib = CreateDIBSection(hdc, bmpinfo, DIB_RGB_COLORS, pbits, C_NULL, 0)
     @assert _dib != C_NULL
     @assert pbits[] != C_NULL
-    _pbits = pbits[]
+    _mbits = unsafe_wrap(Array, Ptr{ARGB32}(pbits[]), (width, height))
     ReleaseDC(hwnd, hdc)
     return 0
 end
@@ -231,13 +218,13 @@ function createMainWindow()
         @cfunction(appWndProc, LRESULT, (HWND, UINT, WPARAM, LPARAM)), 
         0, 0, 
         HINST, 
-        LoadIconW(HINSTANCE(0), IDI_INFORMATION), 
-        LoadCursorW(HINSTANCE(0), IDC_ARROW), 
+        LoadIconW(C_NULL, IDI_INFORMATION), 
+        LoadCursorW(C_NULL, IDC_ARROW), 
         HBRUSH(COLOR_WINDOW+1), 
         C_NULL, 
         pointer(classname))
     @preserve classname RegisterClassW(Ref(wc))
-    hwnd = CreateWindowExW(DWORD(0), classname, L"Skia Test", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 512, 512, HWND(0), HMENU(0), HINST, LPVOID(0))
+    hwnd = CreateWindowExW(DWORD(0), classname, L"Cairo Test", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 512, 512, C_NULL, C_NULL, HINST, C_NULL)
     return hwnd
 end
 
