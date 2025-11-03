@@ -1,11 +1,12 @@
 using LibBaseTsd, Cairo
+@info "CairoTest"
 
 include("../common/Win32.jl")
 using .W32
-
 include("Layout.jl")
-
 import Base.cconvert, .GC.@preserve, ColorTypes.ARGB32
+
+@info "..."
 
 const GAP = -1
 const IDC_IMAGE = 1
