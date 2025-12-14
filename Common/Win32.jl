@@ -1128,10 +1128,12 @@ EnableWindow(hWnd, bEnable) = @ccall User32.EnableWindow(hWnd::HWND, bEnable::BO
 GetDC(hWnd) = @ccall User32.GetDC(hWnd::HWND)::HDC
 ReleaseDC(hWnd, hDC) = @ccall User32.ReleaseDC(hWnd::HWND, hDC::HDC)::Cint
 CreateDIBSection(hdc, pbmi, iUsage, ppvBits, hSection, dwOffset) = @ccall Gdi32.CreateDIBSection(hdc::HDC, pbmi::Ptr{BITMAPINFO}, iUsage::DWORD, ppvBits::Ptr{LPVOID}, hSection::HANDLE, dwOffset::DWORD)::HBITMAP
+GetWindowThreadProcessId(hWnd, lpdwProcessId) = @ccall User32.GetWindowThreadProcessId(hWnd::HWND, lpdwProcessId::LPDWORD)::DWORD
+QueryFullProcessImageNameW(hProcess, dwFlags, lpExeName, lpdwSize) = @ccall Kernel32.QueryFullProcessImageNameW(hProcess::HANDLE, dwFlags::DWORD, lpExeName::LPWSTR, lpdwSize::LPDWORD)::BOOL
 
 # Helpers
-RECT() = RECT(0, 0, 0, 0)
-POINT() = POINT(0, 0)
+LibBaseTsd.RECT() = RECT(0, 0, 0, 0)
+LibBaseTsd.POINT() = POINT(0, 0)
 MSG() = MSG(0, 0, 0, 0, 0, POINT(), 0)
 LOGFONTW() = LOGFONTW( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, zeros(WCHAR, 32) |> Tuple )
 NONCLIENTMETRICSW() = NONCLIENTMETRICSW(sizeof(NONCLIENTMETRICSW), 0, 0, 0, 0, 0, LOGFONTW(), 0, 0, LOGFONTW(), 0, 0, LOGFONTW(), LOGFONTW(), LOGFONTW(), 0)
