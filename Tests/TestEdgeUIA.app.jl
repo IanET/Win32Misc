@@ -78,6 +78,8 @@ bstr = BSTR(C_NULL) |> Ref
 GetText(textRange[], -1, bstr) |> AssertSuccess
 @info "Bstr" bstr[]
 text = unsafe_string(bstr[] |> Cwstring)
+text = filter(c -> c < Char(0x80), text) # remove non-ascii characters
+
 @info "Text" text
 
 @info "Done"
