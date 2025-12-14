@@ -79,6 +79,7 @@ GetText(textRange[], -1, bstr) |> AssertSuccess
 @info "Bstr" bstr[]
 text = unsafe_string(bstr[] |> Cwstring)
 text = filter(c -> c < Char(0x80), text) # remove non-ascii characters
+write("edge_uiatest_output.txt.tmp", text)
 
 @info "Text" text
 
