@@ -1,4 +1,5 @@
 using LibBaseTsd
+using Sockets
 import Base:GC.@preserve
 
 const DNSAPI = "dnsapi.dll"
@@ -18,6 +19,7 @@ const DNS_TYPE_A = 0x0001
 const DNS_TYPE_NULL = 0x000A
 const DNS_TYPE_PTR = 0x000C
 const DNS_TYPE_TXT = 0x0010
+const DNS_TYPE_AAAA = 0x001C
 const DNS_TYPE_SRV = 0x0021
 const DNS_TYPE_ALL = 0x00FF
 const DNS_TYPE_NSEC = 0x002F
@@ -26,6 +28,9 @@ const MAX_CNAME_LEN = 256
 const ERROR_SUCCESS = 0x00000000
 const ERROR_INVALID_PARAMETER = 0x00000057
 const ERROR_CANCELLED = 0x000004c7
+
+const ANSI_GREY = "\e[90m"
+const ANSI_RESET = "\e[0m"
 
 @kwdef struct MDNS_QUERY_REQUEST
     Version::ULONG = DNS_QUERY_REQUEST_VERSION1
@@ -45,7 +50,7 @@ end
     wType::WORD = 0
     pSubscription::PVOID = C_NULL
     pWnfCallbackParams::PVOID = C_NULL
-    stateNameData::NTuple{2, ULONG} = (0, 0) |> Tuple
+    stateNameData::NTuple{2, ULONG} = (0, 0)
 end
 
 @kwdef struct DNS_RECORD
@@ -66,6 +71,11 @@ end
 @kwdef struct DNS_RECORD_A
     record::DNS_RECORD = DNS_RECORD()
     IpAddress::IP4_ADDRESS
+end
+
+@kwdef struct DNS_RECORD_AAAA
+    record::DNS_RECORD = DNS_RECORD()
+    Ip6Address::NTuple{16, UInt8} = ntuple(_ -> 0x00, 16)
 end
 
 @kwdef struct DNS_RECORD_SRV
@@ -111,7 +121,7 @@ function transcode_to_str(wstr::MemoryRef{WCHAR})::String
 end
 
 _calls::Int = 0
-_records::Dict{IP4_ADDRESS, String} = Dict{IP4_ADDRESS, String}()
+_records::Dict{IPAddr, String} = Dict{IPAddr, String}()
 
 function queryCallback(pQueryContext::PVOID, pQueryHandle::Ptr{MDNS_QUERY_HANDLE}, pQueryResults::Ptr{DNS_QUERY_RESULT})::Cvoid
     try
@@ -135,10 +145,11 @@ function queryCallback(pQueryContext::PVOID, pQueryHandle::Ptr{MDNS_QUERY_HANDLE
                 # @info "PTR record" name host
             elseif rec.wType == DNS_TYPE_A
                 arec = unsafe_load(Ptr{DNS_RECORD_A}(prec))
-                addr = arec.IpAddress
-                if _records.keys ∌ addr
+                addr = IPv4(arec.IpAddress)
+                if !haskey(_records, addr)
                     _records[addr] = name
-                    @info "A record" name ipv4_string(addr)
+                    # @info "A record" name ipv4_string(addr)
+                    @info "A record" name addr
                 end
                 # @info "A record" name addr
             elseif rec.wType == DNS_TYPE_SRV
@@ -148,8 +159,15 @@ function queryCallback(pQueryContext::PVOID, pQueryHandle::Ptr{MDNS_QUERY_HANDLE
             elseif rec.wType == DNS_TYPE_TXT
                 txtrec = unsafe_load(Ptr{DNS_RECORD_TXT}(prec))
                 # @info "TXT record" name txtrec.dwStringCount
+            elseif rec.wType == DNS_TYPE_AAAA
+                aaarec = unsafe_load(Ptr{DNS_RECORD_AAAA}(prec))
+                addr = reverse(aaarec.Ip6Address) |> a -> reinterpret(UInt128, a)[1] |> IPv6
+                if !haskey(_records, addr)
+                    _records[addr] = name
+                    @info "AAAA record" name addr
+                end
             else
-                @info "Other record" rec.wType name
+                @info "$(ANSI_GREY)Other record$(ANSI_RESET)" rec.wType name
             end
             prec = rec.pNext
         end
@@ -157,13 +175,16 @@ function queryCallback(pQueryContext::PVOID, pQueryHandle::Ptr{MDNS_QUERY_HANDLE
         # @info "Query callback done"
     catch e
         @error "Error in query callback: " e
+        # @info "Stacktrace: " catch_backtrace() |> stacktrace
     end
     return nothing
 end
 
+const TIMEOUT_SEC = 30
+service = L"_services._dns-sd._udp.local"
 # service = L"_googlecast._tcp.local"
 # service = L"_workstation._tcp.local"
-service = L"_ssh._tcp.local"
+# service = L"_ssh._tcp.local"
 # service = L"_http._tcp.local"
 # service = L"_udisks-ssh._tcp.local"
 
@@ -183,12 +204,14 @@ handle = MDNS_QUERY_HANDLE() |> Ref
 @info "Multicast query started"
 
 # SleepEx(10*1000, TRUE)
-sleep(10)
+@info "Waiting for responses for $TIMEOUT_SEC seconds..."
+sleep(TIMEOUT_SEC)
 
 @info "Stopping multicast query..."
 DnsStopMulticastQuery(handle)
 @info "Multicast query stopped"
 @info "Number of calls to query callback: " _calls length(_records)
+@info "Records" _records
 
 sleep(1)
 
