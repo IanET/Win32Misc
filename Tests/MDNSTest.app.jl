@@ -214,4 +214,3 @@ DnsStopMulticastQuery(handle)
 @info "Records" _records
 
 sleep(1)
-
