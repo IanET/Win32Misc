@@ -182,6 +182,11 @@ end
 
 const TIMEOUT_SEC = 30
 service = L"_services._dns-sd._udp.local"
+
+if length(ARGS) >= 1
+    service = Base.cconvert(Cwstring, ARGS[1])
+end
+
 # service = L"_googlecast._tcp.local"
 # service = L"_workstation._tcp.local"
 # service = L"_ssh._tcp.local"
