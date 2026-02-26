@@ -1,6 +1,7 @@
 module W32
 
 using LibBaseTsd
+import .LibBaseTsd: RECT, POINT
 
 # Generated from WinUser.h et al via Github Copilot
 
