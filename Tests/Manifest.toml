@@ -139,7 +139,7 @@ version = "2.10.3+0"
 
 [[deps.LibBaseTsd]]
 deps = ["CEnum"]
-git-tree-sha1 = "cf19ea927ff38d3c4eaf0328ee643e10be571c12"
+git-tree-sha1 = "acddc5c7505da6305a13af40d2841366e99651a4"
 repo-rev = "main"
 repo-url = "https://github.com/IanET/LibBaseTsd.git"
 uuid = "7e56034f-6cb4-40fe-a0fc-e21059f7fef0"

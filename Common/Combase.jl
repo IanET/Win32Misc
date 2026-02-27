@@ -10,7 +10,7 @@ const HRESULT = LONG
 const HSTRING = HANDLE
 const PCNZWCH = LPCWSTR
 const LpifaceLESTR = LPCWSTR
-const OLESTR = AbstractVector{WCHAR}
+const OLESTR = Vector{WCHAR}
 const PCWSTR = LPCWSTR
 
 const S_OK = 0
@@ -343,13 +343,12 @@ end
 Base.getindex(r::JComObj) = r.ptr
 JComObj{T}(obj) where T <: Interface = JComObj{T}(Ref(obj))
 
-function WindowsCreateString(sz::OLESTR)
+function WindowsCreateString(str::AbstractArray{UInt16})
     rhstr = HSTRING(0) |> Ref
-    hr = WindowsCreateString(sz, length(sz)-1, rhstr)
+    hr = WindowsCreateString(str, length(str)-1, rhstr)
     return (hstring = rhstr[], hresult = hr)
-end
-WindowsCreateString(str::String) = Base.cconvert(Cwstring, str) |> WindowsCreateString
-WindowsCreateString(mr::MemoryRef{UInt16}) = WindowsCreateString(mr.mem)
+end 
+WindowsCreateString(str::String) = WindowsCreateString(Base.cwstring(str))
 
 function AssertSuccess(hr::HRESULT)
     if hr != S_OK; throw(ErrorException(@sprintf("HRESULT: 0x%x", reinterpret(UInt32, hr)))) end
