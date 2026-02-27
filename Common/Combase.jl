@@ -11,6 +11,7 @@ const HSTRING = HANDLE
 const PCNZWCH = LPCWSTR
 const LpifaceLESTR = LPCWSTR
 const OLESTR = AbstractVector{WCHAR}
+const PCWSTR = LPCWSTR
 
 const S_OK = 0
 const S_FALSE = 1
@@ -72,6 +73,8 @@ Base.show(io::IO, g::GUID) = @printf(io, "{%08x-%04x-%04x-%04x-%012x}", g.Data1,
 IIDFromString(lpsz, lpiid) = @ccall Combase.IIDFromString(lpsz::LpifaceLESTR, lpiid::Ptr{IID})::HRESULT
 WindowsCreateString(sourceString, len, str) = @ccall Combase.WindowsCreateString(sourceString::PCNZWCH, len::UINT, str::Ptr{HSTRING})::HRESULT
 WindowsDeleteString(str) = @ccall Combase.WindowsDeleteString(str::HSTRING)::HRESULT
+WindowsGetStringLen(str) = @ccall Combase.WindowsGetStringLen(str::HSTRING)::UINT
+WindowsGetStringRawBuffer(str, len) = @ccall Combase.WindowsGetStringRawBuffer(str::HSTRING, len::Ref{UINT})::PCWSTR
 RoInitialize(initType) = @ccall Combase.RoInitialize(initType::UINT)::HRESULT
 RoUninitialize() = @ccall Combase.RoUninitialize()::HRESULT
 RoGetActivationFactory(activatableClassId::HSTRING, riid, out) = @ccall Combase.RoGetActivationFactory(activatableClassId::HSTRING, riid::REFIID, out::Ptr{Ptr{Cvoid}})::HRESULT
@@ -346,6 +349,7 @@ function WindowsCreateString(sz::OLESTR)
     return (hstring = rhstr[], hresult = hr)
 end
 WindowsCreateString(str::String) = Base.cconvert(Cwstring, str) |> WindowsCreateString
+WindowsCreateString(mr::MemoryRef{UInt16}) = WindowsCreateString(mr.mem)
 
 function AssertSuccess(hr::HRESULT)
     if hr != S_OK; throw(ErrorException(@sprintf("HRESULT: 0x%x", reinterpret(UInt32, hr)))) end
