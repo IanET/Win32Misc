@@ -1,5 +1,7 @@
 using Printf, CEnum
 
+# TODO - Fix use of MemoryRef
+
 const Combase = "Combase.dll"
 import .W32: HMODULE, HANDLE, UINT, LPCWSTR, LONG, HWND, WCHAR, BYTE, POINT, TRUE, FALSE, ULONG
 import .GC: @preserve
@@ -8,7 +10,7 @@ const HRESULT = LONG
 const HSTRING = HANDLE
 const PCNZWCH = LPCWSTR
 const LpifaceLESTR = LPCWSTR
-const OLESTR = Vector{WCHAR}
+const OLESTR = AbstractVector{WCHAR}
 
 const S_OK = 0
 const S_FALSE = 1
