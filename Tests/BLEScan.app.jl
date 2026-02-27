@@ -21,9 +21,38 @@ end
     # TODO
 end
 
+@cenum BluetoothLEAdvertisementWatcherStatus begin
+    Created = 0
+    Started = 1
+    Stopping = 2
+    Stopped = 3
+    Aborted = 4
+end
+
+@cenum BluetoothLEScanningMode begin
+    Passive = 0
+    Active = 1
+end
+
 @interface IBluetoothLEAdvertisementWatcher begin
     @inherit IInspectable
-    # TODO
+    get_MinSamplingInterval::Ptr{Cvoid}
+    get_MaxSamplingInterval::Ptr{Cvoid}
+    get_MinOutOfRangeTimeout::Ptr{Cvoid}
+    get_MaxOutOfRangeTimeout::Ptr{Cvoid}
+    get_Status(this::Ptr{IBluetoothLEAdvertisementWatcher}, value::Ptr{BluetoothLEAdvertisementWatcherStatus})::HRESULT
+    get_ScanningMode(this::Ptr{IBluetoothLEAdvertisementWatcher}, value::Ptr{BluetoothLEScanningMode})::HRESULT
+    put_ScanningMode(this::Ptr{IBluetoothLEAdvertisementWatcher}, value::BluetoothLEScanningMode)::HRESULT
+    get_SignalStrengthFilter::Ptr{Cvoid}
+    put_SignalStrengthFilter::Ptr{Cvoid}
+    get_AdvertisementFilter::Ptr{Cvoid}
+    put_AdvertisementFilter::Ptr{Cvoid}
+    Start(this::Ptr{IBluetoothLEAdvertisementWatcher})::HRESULT
+    Stop(this::Ptr{IBluetoothLEAdvertisementWatcher})::HRESULT
+    add_Received::Ptr{Cvoid}
+    remove_Received::Ptr{Cvoid}
+    add_Stopped::Ptr{Cvoid}
+    remove_Stopped::Ptr{Cvoid}
 end
 
 IID_IBluetoothLEAdvertisementWatcherFactory = GUID(0x9aaf2d56, 0x39ac, 0x453e, 0xb32a, 0x85c657e017f1)
@@ -55,3 +84,17 @@ watcher = Ptr{IBluetoothLEAdvertisementWatcher}(C_NULL) |> Ref
 Create(factory, filter, watcher) |> AssertSuccess
 @info "Watcher: $(watcher[])"
 
+status = BluetoothLEAdvertisementWatcherStatus(0) |> Ref
+mode = BluetoothLEScanningMode(0) |> Ref
+
+put_ScanningMode(watcher[], Active) |> AssertSuccess
+Start(watcher[]) |> AssertSuccess
+for i in 1:10
+    get_Status(watcher[], status) |> AssertSuccess
+    get_ScanningMode(watcher[], mode) |> AssertSuccess
+    @info "Status: $(status[]) Mode: $(mode[])"
+    sleep(1)
+end
+Stop(watcher[]) |> AssertSuccess
+
+@info "Done"
