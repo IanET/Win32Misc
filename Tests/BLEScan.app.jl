@@ -34,6 +34,14 @@ end
     Active = 1
 end
 
+@kwdef mutable struct IRecievedCallbackVtbl <: Vtbl
+    QueryInterface::Ptr{Cvoid} = C_NULL
+    AddRef::Ptr{Cvoid} = C_NULL
+    Release::Ptr{Cvoid} = C_NULL
+    Invoke::Ptr{Cvoid} = C_NULL
+end
+const IRecievedCallback = Interface{IRecievedCallbackVtbl}
+
 @interface IBluetoothLEAdvertisementWatcher begin
     @inherit IInspectable
     get_MinSamplingInterval::Ptr{Cvoid}
@@ -45,12 +53,12 @@ end
     put_ScanningMode(this::Ptr{IBluetoothLEAdvertisementWatcher}, value::BluetoothLEScanningMode)::HRESULT
     get_SignalStrengthFilter::Ptr{Cvoid}
     put_SignalStrengthFilter::Ptr{Cvoid}
-    get_AdvertisementFilter::Ptr{Cvoid}
-    put_AdvertisementFilter::Ptr{Cvoid}
+    get_AdvertisementFilter(this::Ptr{IBluetoothLEAdvertisementWatcher}, value::Ptr{Ptr{IBluetoothLEAdvertisementFilter}})::HRESULT
+    put_AdvertisementFilter(this::Ptr{IBluetoothLEAdvertisementWatcher}, value::Ptr{IBluetoothLEAdvertisementFilter})::HRESULT
     Start(this::Ptr{IBluetoothLEAdvertisementWatcher})::HRESULT
     Stop(this::Ptr{IBluetoothLEAdvertisementWatcher})::HRESULT
-    add_Received::Ptr{Cvoid}
-    remove_Received::Ptr{Cvoid}
+    add_Received(this::Ptr{IBluetoothLEAdvertisementWatcher}, handler::Ptr{IRecievedCallback}, token::Ptr{UInt64})::HRESULT
+    remove_Received(this::Ptr{IBluetoothLEAdvertisementWatcher}, token::UInt64)::HRESULT
     add_Stopped::Ptr{Cvoid}
     remove_Stopped::Ptr{Cvoid}
 end
@@ -84,17 +92,70 @@ watcher = Ptr{IBluetoothLEAdvertisementWatcher}(C_NULL) |> Ref
 Create(factory, filter, watcher) |> AssertSuccess
 @info "Watcher: $(watcher[])"
 
+filter = Ptr{IBluetoothLEAdvertisementFilter}(C_NULL) |> Ref
+get_AdvertisementFilter(watcher[], filter) |> AssertSuccess
+@info "Filter: $(filter[])"
+
+IID_INoMarshal = GUID(0xecc8691b, 0xc1db, 0x4dc0, 0x855e, 0x65f6c551af49)
+IID_Typed_Event_Handler = GUID(0x90eb4eca, 0xd465, 0x5ea0, 0xa61c, 0x033c8c5ecef2)
+
+function RecievedCallback_QueryInterface(this::Ptr{IRecievedCallback}, riid::Ptr{GUID}, ppv::Ptr{Ptr{Cvoid}})::HRESULT
+    guid = unsafe_load(riid)
+    @info "Received QueryInterface: $guid"
+    if guid == IID_IUNKNOWN || guid == IID_Typed_Event_Handler
+        unsafe_store!(ppv, this)
+        return S_OK
+    end
+    unsafe_store!(ppv, C_NULL)
+    return reinterpret(HRESULT, E_NOINTERFACE)
+end
+
+function RecievedCallback_AddRef(this::Ptr{IRecievedCallback})::UInt32
+    @info "Received AddRef"
+    return 1
+end
+
+function RecievedCallback_Release(this::Ptr{IRecievedCallback})::UInt32
+    @info "Received Release"
+    return 1
+end
+
+function RecievedCallback_Invoke(this::Ptr{IRecievedCallback}, watcher::Ptr{IBluetoothLEAdvertisementWatcher}, eventArgs::Ptr{Cvoid})::HRESULT
+    @info "Received Invoke"
+    return S_OK
+end
+
+vtbl = IRecievedCallbackVtbl()
+vtbl.QueryInterface = @cfunction(RecievedCallback_QueryInterface, HRESULT, (Ptr{IRecievedCallback}, Ptr{GUID}, Ptr{Ptr{Cvoid}}))
+vtbl.AddRef = @cfunction(RecievedCallback_AddRef, UInt32, (Ptr{IRecievedCallback},))
+vtbl.Release = @cfunction(RecievedCallback_Release, UInt32, (Ptr{IRecievedCallback},))
+vtbl.Invoke = @cfunction(RecievedCallback_Invoke, HRESULT, (Ptr{IRecievedCallback}, Ptr{IBluetoothLEAdvertisementWatcher}, Ptr{Cvoid})) 
+
+recived_callback = Interface{IRecievedCallbackVtbl}(pointer_from_objref(vtbl)) 
+
+# @kwdef mutable struct TestObject
+#     pvtlbl::Ptr{IRecievedCallbackVtbl} = C_NULL
+# end
+
+# to = TestObject(pointer_from_objref(vtbl))
+
+jco = JComObj{IRecievedCallback}(Ref(recived_callback))
+
 status = BluetoothLEAdvertisementWatcherStatus(0) |> Ref
 mode = BluetoothLEScanningMode(0) |> Ref
+token = UInt64(0) |> Ref
 
 put_ScanningMode(watcher[], Active) |> AssertSuccess
-Start(watcher[]) |> AssertSuccess
-for i in 1:10
+add_Received(watcher[], jco[], token)
+# add_Received(watcher[], pointer_from_objref(to) |> Ptr{IRecievedCallback}, token) |> AssertSuccess
+
+# Start(watcher[]) |> AssertSuccess
+for i in 10:-1:1
     get_Status(watcher[], status) |> AssertSuccess
     get_ScanningMode(watcher[], mode) |> AssertSuccess
-    @info "Status: $(status[]) Mode: $(mode[])"
+    @info "($i) Status: $(status[]) Mode: $(mode[])"
     sleep(1)
 end
 Stop(watcher[]) |> AssertSuccess
 
-@info "Done"
+# @info "Done"
