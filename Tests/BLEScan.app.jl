@@ -73,13 +73,26 @@ IID_IBluetoothLEAdvertisementWatcherFactory = GUID(0x9aaf2d56, 0x39ac, 0x453e, 0
     Create(this::Ptr{IBluetoothLEAdvertisementWatcherFactory}, advertisementFilter::Ptr{IBluetoothLEAdvertisementFilter}, value::Ptr{Ptr{IBluetoothLEAdvertisementWatcher}})::HRESULT
 end
 
+@interface IBluetoothLEAdvertisement begin
+    @inherit IInspectable
+    get_Flags::Ptr{Cvoid}
+    put_Flags::Ptr{Cvoid}
+    get_LocalName(this::Ptr{IBluetoothLEAdvertisement}, value::Ptr{HSTRING})::HRESULT
+    put_LocalName::Ptr{Cvoid}
+    get_ServiceUuids::Ptr{Cvoid}
+    get_ManufacturerData::Ptr{Cvoid}
+    get_DataSections::Ptr{Cvoid}
+    get_GetManufacturerDataByCompanyId::Ptr{Cvoid}
+    get_SectionsByType::Ptr{Cvoid}
+end
+
 @interface IBluetoothLEAdvertisementReceivedEventArgs begin
     @inherit IInspectable
     get_RawSignalStrengthInDBm(this::Ptr{IBluetoothLEAdvertisementReceivedEventArgs}, value::Ptr{Int16})::HRESULT
     get_BluetoothAddress(this::Ptr{IBluetoothLEAdvertisementReceivedEventArgs}, value::Ptr{UInt64})::HRESULT
     get_AdvertisementType::Ptr{Cvoid}
     get_Timestamp::Ptr{Cvoid}
-    get_Advertisement::Ptr{Cvoid}
+    get_Advertisement(this::Ptr{IBluetoothLEAdvertisementReceivedEventArgs}, value::Ptr{Ptr{IBluetoothLEAdvertisement}})::HRESULT
 end
 
 hr = RoInitialize(RO_INIT_MULTITHREADED)
@@ -131,17 +144,28 @@ function RecievedCallback_Release(this::Ptr{IRecievedCallback})::UInt32
 end
 
 function RecievedCallback_Invoke(this::Ptr{IRecievedCallback}, watcher::Ptr{IBluetoothLEAdvertisementWatcher}, eventArgs::Ptr{Cvoid})::HRESULT
-    # @info "Received Invoke"
-    eventArgs = Ptr{IBluetoothLEAdvertisementReceivedEventArgs}(eventArgs)
-    addr = UInt64(0) |> Ref
-    get_BluetoothAddress(eventArgs, addr) |> AssertSuccess
-    if !(addr[] in seen)
-        push!(seen, addr[])
-        signal = Int16(0) |> Ref
-        get_RawSignalStrengthInDBm(eventArgs, signal) |> AssertSuccess
-        addrstr = @sprintf("%012X", addr[])
-        @info "Invoke: Address: $addrstr Signal Strength: $(signal[])"
-    end
+    # try
+        # @info "Received Invoke"
+        eventArgs = Ptr{IBluetoothLEAdvertisementReceivedEventArgs}(eventArgs)
+        addr = UInt64(0) |> Ref
+        get_BluetoothAddress(eventArgs, addr) |> AssertSuccess
+        if !(addr[] in seen)
+            push!(seen, addr[])
+            signal = Int16(0) |> Ref
+            get_RawSignalStrengthInDBm(eventArgs, signal) |> AssertSuccess
+            addrstr = @sprintf("%012X", addr[])
+            advertisement = Ptr{IBluetoothLEAdvertisement}(C_NULL) |> Ref
+            get_Advertisement(eventArgs, advertisement) |> AssertSuccess
+            hlocalname = HSTRING() |> Ref
+            get_LocalName(advertisement[], hlocalname) |> AssertSuccess
+            plocalname = WindowsGetStringRawBuffer(hlocalname[], C_NULL) 
+            len = WindowsGetStringLen(hlocalname[])
+            localname = unsafe_wrap(Array, plocalname, len) |> v -> transcode(String, v)
+            @info "Invoke: Address: $addrstr Signal Strength: $(signal[]) Local Name: $(localname)"
+        end
+    # catch e
+    #     @error "Error in callback: $e"
+    # end
     return S_OK
 end
 
