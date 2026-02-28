@@ -2,7 +2,7 @@
 
 include("../common/Win32.jl")
 include("../common/combase.jl")
-using LibBaseTsd, .W32 
+using LibBaseTsd, Printf, .W32 
 
 # {AF86E2E0-B12D-4C6A-9C5A-D7AA65101E90}
 IID_Inspectable = GUID(0xaf86e2e0, 0xb12d, 0x4c6a, 0x9c5a, 0xd7aa65101e90)
@@ -10,6 +10,10 @@ IID_IUriFactory = GUID(0x44a9796c, 0x1108, 0x4541, 0xa279, 0x042f0bd441f1)
 IID_IUNKNOWN = GUID(0x00000000, 0x0000, 0x0000, 0xc000, 0x000000000046)
 IID_IActivationFactory = GUID(0x00000035, 0x0000, 0x0000, 0xc000, 0x000000000046)
 IID_IBluetoothLEAdvertisementFilter = GUID(0x131eb0d3, 0xd04e, 0x47b1, 0x837e, 0x49405bf6f80f)
+IID_INoMarshal = GUID(0xecc8691b, 0xc1db, 0x4dc0, 0x855e, 0x65f6c551af49)
+IID_Typed_Event_Handler = GUID(0x90eb4eca, 0xd465, 0x5ea0, 0xa61c, 0x033c8c5ecef2)
+
+seen = Set{UInt64}()
 
 @interface IActivationFactory begin
     @inherit IInspectable
@@ -69,6 +73,15 @@ IID_IBluetoothLEAdvertisementWatcherFactory = GUID(0x9aaf2d56, 0x39ac, 0x453e, 0
     Create(this::Ptr{IBluetoothLEAdvertisementWatcherFactory}, advertisementFilter::Ptr{IBluetoothLEAdvertisementFilter}, value::Ptr{Ptr{IBluetoothLEAdvertisementWatcher}})::HRESULT
 end
 
+@interface IBluetoothLEAdvertisementReceivedEventArgs begin
+    @inherit IInspectable
+    get_RawSignalStrengthInDBm(this::Ptr{IBluetoothLEAdvertisementReceivedEventArgs}, value::Ptr{Int16})::HRESULT
+    get_BluetoothAddress(this::Ptr{IBluetoothLEAdvertisementReceivedEventArgs}, value::Ptr{UInt64})::HRESULT
+    get_AdvertisementType::Ptr{Cvoid}
+    get_Timestamp::Ptr{Cvoid}
+    get_Advertisement::Ptr{Cvoid}
+end
+
 hr = RoInitialize(RO_INIT_MULTITHREADED)
 ppv = PVOID() |> Ref
 
@@ -96,9 +109,6 @@ filter = Ptr{IBluetoothLEAdvertisementFilter}(C_NULL) |> Ref
 get_AdvertisementFilter(watcher[], filter) |> AssertSuccess
 @info "Filter: $(filter[])"
 
-IID_INoMarshal = GUID(0xecc8691b, 0xc1db, 0x4dc0, 0x855e, 0x65f6c551af49)
-IID_Typed_Event_Handler = GUID(0x90eb4eca, 0xd465, 0x5ea0, 0xa61c, 0x033c8c5ecef2)
-
 function RecievedCallback_QueryInterface(this::Ptr{IRecievedCallback}, riid::Ptr{GUID}, ppv::Ptr{Ptr{Cvoid}})::HRESULT
     guid = unsafe_load(riid)
     # @info "Received QueryInterface: $guid"
@@ -121,7 +131,17 @@ function RecievedCallback_Release(this::Ptr{IRecievedCallback})::UInt32
 end
 
 function RecievedCallback_Invoke(this::Ptr{IRecievedCallback}, watcher::Ptr{IBluetoothLEAdvertisementWatcher}, eventArgs::Ptr{Cvoid})::HRESULT
-    @info "Received Invoke"
+    # @info "Received Invoke"
+    eventArgs = Ptr{IBluetoothLEAdvertisementReceivedEventArgs}(eventArgs)
+    addr = UInt64(0) |> Ref
+    get_BluetoothAddress(eventArgs, addr) |> AssertSuccess
+    if !(addr[] in seen)
+        push!(seen, addr[])
+        signal = Int16(0) |> Ref
+        get_RawSignalStrengthInDBm(eventArgs, signal) |> AssertSuccess
+        addrstr = @sprintf("%012X", addr[])
+        @info "Invoke: Address: $addrstr Signal Strength: $(signal[])"
+    end
     return S_OK
 end
 
@@ -139,11 +159,11 @@ token = UInt64(0) |> Ref
 put_ScanningMode(watcher[], Active) |> AssertSuccess
 add_Received(watcher[], callback[], token)
 Start(watcher[]) |> AssertSuccess
-for i in 25:-1:1
+for i in 10:-1:1
     get_Status(watcher[], status) |> AssertSuccess
     get_ScanningMode(watcher[], mode) |> AssertSuccess
     @info "($i) Status: $(status[]) Mode: $(mode[])"
-    sleep(1)
+    sleep(5)
 end
 put_ScanningMode(watcher[], Passive) |> AssertSuccess
 Stop(watcher[]) |> AssertSuccess
