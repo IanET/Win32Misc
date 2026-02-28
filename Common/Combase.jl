@@ -300,16 +300,23 @@ const IID_IAsyncInfo = GUID(0x00000036, 0x0000, 0x0000, 0xC000, 0x000000000046)
     Close::Ptr{Cvoid}
 end
 
+IID_IAsyncActionCompletedHandler = GUID(0xa4ed5c81, 0x76c9, 0x40bd, 0x8be6, 0xb1d90fb20ae7)
 @interface IAsyncActionCompletedHandler begin
-    @inherit IAsyncInfo
-    Invoke::Ptr{Cvoid}
+    @inherit IUnknown
+    Invoke(this::Ptr{IAsyncActionCompletedHandler}, asyncInfo::Ptr{IAsyncInfo}, asyncStatus::AsyncStatus)::HRESULT
+end
+
+IID_IAsyncOperationCompletedHandler = GUID(0x9fc2b0bb, 0xe446, 0x44e2, 0xaa61, 0x9cab8f636af2)  # Same as IAsyncOperation, but for handler
+@interface IAsyncOperationCompletedHandler begin
+    @inherit IUnknown
+    Invoke(this::Ptr{IAsyncOperationCompletedHandler}, asyncInfo::Ptr{IAsyncInfo}, asyncStatus::AsyncStatus)::HRESULT
 end
 
 @interface IAsyncOperation begin
     @inherit IAsyncInfo
-    put_Completed::Ptr{Cvoid}
-    get_Completed::Ptr{Cvoid}
-    GetResults::Ptr{Cvoid}
+    put_Completed(this::Ptr{IAsyncOperation}, handler::Ptr{IAsyncOperationCompletedHandler})::HRESULT
+    get_Completed(this::Ptr{IAsyncOperation}, handler::Ptr{Ptr{IAsyncOperationCompletedHandler}})::HRESULT
+    GetResults(this::Ptr{IAsyncOperation}, results::Ptr{Ptr{Cvoid}})::HRESULT
 end
 
 # --- Helpers ---
