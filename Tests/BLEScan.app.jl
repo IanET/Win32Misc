@@ -101,7 +101,7 @@ IID_Typed_Event_Handler = GUID(0x90eb4eca, 0xd465, 0x5ea0, 0xa61c, 0x033c8c5ecef
 
 function RecievedCallback_QueryInterface(this::Ptr{IRecievedCallback}, riid::Ptr{GUID}, ppv::Ptr{Ptr{Cvoid}})::HRESULT
     guid = unsafe_load(riid)
-    @info "Received QueryInterface: $guid"
+    # @info "Received QueryInterface: $guid"
     if guid == IID_IUNKNOWN || guid == IID_Typed_Event_Handler
         unsafe_store!(ppv, this)
         return S_OK
@@ -111,12 +111,12 @@ function RecievedCallback_QueryInterface(this::Ptr{IRecievedCallback}, riid::Ptr
 end
 
 function RecievedCallback_AddRef(this::Ptr{IRecievedCallback})::UInt32
-    @info "Received AddRef"
+    # @info "Received AddRef"
     return 1
 end
 
 function RecievedCallback_Release(this::Ptr{IRecievedCallback})::UInt32
-    @info "Received Release"
+    # @info "Received Release"
     return 1
 end
 
@@ -130,15 +130,7 @@ vtbl.QueryInterface = @cfunction(RecievedCallback_QueryInterface, HRESULT, (Ptr{
 vtbl.AddRef = @cfunction(RecievedCallback_AddRef, UInt32, (Ptr{IRecievedCallback},))
 vtbl.Release = @cfunction(RecievedCallback_Release, UInt32, (Ptr{IRecievedCallback},))
 vtbl.Invoke = @cfunction(RecievedCallback_Invoke, HRESULT, (Ptr{IRecievedCallback}, Ptr{IBluetoothLEAdvertisementWatcher}, Ptr{Cvoid})) 
-
 recived_callback = Interface{IRecievedCallbackVtbl}(pointer_from_objref(vtbl)) 
-
-# @kwdef mutable struct TestObject
-#     pvtlbl::Ptr{IRecievedCallbackVtbl} = C_NULL
-# end
-
-# to = TestObject(pointer_from_objref(vtbl))
-
 jco = JComObj{IRecievedCallback}(Ref(recived_callback))
 
 status = BluetoothLEAdvertisementWatcherStatus(0) |> Ref
@@ -147,15 +139,14 @@ token = UInt64(0) |> Ref
 
 put_ScanningMode(watcher[], Active) |> AssertSuccess
 add_Received(watcher[], jco[], token)
-# add_Received(watcher[], pointer_from_objref(to) |> Ptr{IRecievedCallback}, token) |> AssertSuccess
-
-# Start(watcher[]) |> AssertSuccess
-for i in 10:-1:1
+Start(watcher[]) |> AssertSuccess
+for i in 25:-1:1
     get_Status(watcher[], status) |> AssertSuccess
     get_ScanningMode(watcher[], mode) |> AssertSuccess
     @info "($i) Status: $(status[]) Mode: $(mode[])"
     sleep(1)
 end
+put_ScanningMode(watcher[], Passive) |> AssertSuccess
 Stop(watcher[]) |> AssertSuccess
 
-# @info "Done"
+@info "Done"
