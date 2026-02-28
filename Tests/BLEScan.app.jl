@@ -130,15 +130,14 @@ vtbl.QueryInterface = @cfunction(RecievedCallback_QueryInterface, HRESULT, (Ptr{
 vtbl.AddRef = @cfunction(RecievedCallback_AddRef, UInt32, (Ptr{IRecievedCallback},))
 vtbl.Release = @cfunction(RecievedCallback_Release, UInt32, (Ptr{IRecievedCallback},))
 vtbl.Invoke = @cfunction(RecievedCallback_Invoke, HRESULT, (Ptr{IRecievedCallback}, Ptr{IBluetoothLEAdvertisementWatcher}, Ptr{Cvoid})) 
-recived_callback = Interface{IRecievedCallbackVtbl}(pointer_from_objref(vtbl)) 
-jco = JComObj{IRecievedCallback}(Ref(recived_callback))
+callback = pointer_from_objref(vtbl) |> Interface{IRecievedCallbackVtbl} |> JComObj{IRecievedCallback}
 
 status = BluetoothLEAdvertisementWatcherStatus(0) |> Ref
 mode = BluetoothLEScanningMode(0) |> Ref
 token = UInt64(0) |> Ref
 
 put_ScanningMode(watcher[], Active) |> AssertSuccess
-add_Received(watcher[], jco[], token)
+add_Received(watcher[], callback[], token)
 Start(watcher[]) |> AssertSuccess
 for i in 25:-1:1
     get_Status(watcher[], status) |> AssertSuccess
