@@ -283,12 +283,19 @@ end
     Invoke::Ptr{Cvoid}
 end
 
+@cenum AsyncStatus begin
+    Started = 0
+    Completed = 1
+    Canceled = 2
+    Error = 3
+end
+
 const IID_IAsyncInfo = GUID(0x00000036, 0x0000, 0x0000, 0xC000, 0x000000000046)
 @interface IAsyncInfo begin
     @inherit IInspectable
     get_Id::Ptr{Cvoid}
-    get_Status::Ptr{Cvoid}
-    get_ErrorCode::Ptr{Cvoid}
+    get_Status(this::Ptr{IAsyncInfo}, status::Ptr{AsyncStatus})::HRESULT
+    get_ErrorCode(this::Ptr{IAsyncInfo}, errorCode::Ptr{HRESULT})::HRESULT
     Cancel::Ptr{Cvoid}
     Close::Ptr{Cvoid}
 end
@@ -299,7 +306,7 @@ end
 end
 
 @interface IAsyncOperation begin
-    @inherit IInspectable
+    @inherit IAsyncInfo
     put_Completed::Ptr{Cvoid}
     get_Completed::Ptr{Cvoid}
     GetResults::Ptr{Cvoid}

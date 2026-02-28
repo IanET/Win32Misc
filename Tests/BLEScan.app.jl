@@ -3,6 +3,7 @@
 include("../common/Win32.jl")
 include("../common/combase.jl")
 using LibBaseTsd, Printf, .W32 
+import Base.Threads: @spawn
 
 IID_Inspectable = GUID(0xaf86e2e0, 0xb12d, 0x4c6a, 0x9c5a, 0xd7aa65101e90)
 IID_IUriFactory = GUID(0x44a9796c, 0x1108, 0x4541, 0xa279, 0x042f0bd441f1)
@@ -19,6 +20,7 @@ seen = Set{UInt64}()
     ActivateInstance(this::Ptr{IActivationFactory}, instance::Ptr{Ptr{IInspectable}})::HRESULT
 end
 
+const Classname_IBluetoothLEAdvertisementFilter = "Windows.Devices.Bluetooth.Advertisement.BluetoothLEAdvertisementFilter"
 @interface IBluetoothLEAdvertisementFilter begin
     @inherit IInspectable
     # TODO
@@ -37,6 +39,7 @@ end
     Active = 1
 end
 
+const Classname_IBluetoothLEAdvertisementWatcher = "Windows.Devices.Bluetooth.Advertisement.BluetoothLEAdvertisementWatcher"
 @interface IBluetoothLEAdvertisementWatcher begin
     @inherit IInspectable
     get_MinSamplingInterval::Ptr{Cvoid}
@@ -86,32 +89,14 @@ end
     get_Advertisement(this::Ptr{IBluetoothLEAdvertisementReceivedEventArgs}, value::Ptr{Ptr{IBluetoothLEAdvertisement}})::HRESULT
 end
 
-hr = RoInitialize(RO_INIT_MULTITHREADED)
-ppv = PVOID() |> Ref
-
-# Create a filter for the watcher
-RoGetActivationFactory("Windows.Devices.Bluetooth.Advertisement.BluetoothLEAdvertisementFilter", Ref(IID_IActivationFactory), ppv) |> AssertSuccess
-activation_factory = Ptr{IActivationFactory}(ppv[])
-insp = Ptr{IInspectable}(C_NULL) |> Ref
-ActivateInstance(activation_factory, insp) |> AssertSuccess
-QueryInterface(insp[], Ref(IID_IBluetoothLEAdvertisementFilter), ppv) |> AssertSuccess
-filter = Ptr{IBluetoothLEAdvertisementFilter}(ppv[])
-@info "Filter: $(filter)"
-
-# Create the watcher
-RoGetActivationFactory("Windows.Devices.Bluetooth.Advertisement.BluetoothLEAdvertisementWatcher", Ref(IID_Inspectable), ppv) |> AssertSuccess
-insp = Ptr{IInspectable}(ppv[])
-QueryInterface(insp, Ref(IID_IBluetoothLEAdvertisementWatcherFactory), ppv) |> AssertSuccess
-factory = Ptr{IBluetoothLEAdvertisementWatcherFactory}(ppv[])
-@info "Factory: $(factory)"
-
-watcher = Ptr{IBluetoothLEAdvertisementWatcher}(C_NULL) |> Ref
-Create(factory, filter, watcher) |> AssertSuccess
-@info "Watcher: $(watcher[])"
-
-filter = Ptr{IBluetoothLEAdvertisementFilter}(C_NULL) |> Ref
-get_AdvertisementFilter(watcher[], filter) |> AssertSuccess
-@info "Filter: $(filter[])"
+const Classname_IBluetoothLEDevice = "Windows.Devices.Bluetooth.BluetoothLEDevice"
+IID_IBluetoothLEDeviceStatics = GUID(0xc8cf1a19, 0xf0b6, 0x4bf0, 0x8689, 0x41303de2d9f4)
+@interface IBluetoothLEDeviceStatics begin
+    @inherit IInspectable
+    FromIdAsync::Ptr{Cvoid}
+    FromBluetoothAddressAsync(this::Ptr{IBluetoothLEDeviceStatics}, bluetoothAddress::UInt64, operation::Ptr{Ptr{IAsyncOperation}})::HRESULT
+    GetDeviceSelector::Ptr{Cvoid}
+end
 
 function RecievedCallback_QueryInterface(this::Ptr{IEventHandler}, riid::Ptr{GUID}, ppv::Ptr{Ptr{Cvoid}})::HRESULT
     guid = unsafe_load(riid)
@@ -134,6 +119,74 @@ function RecievedCallback_Release(this::Ptr{IEventHandler})::UInt32
     return 1
 end
 
+hr = RoInitialize(RO_INIT_MULTITHREADED)
+ppv = PVOID() |> Ref
+
+# Helpers
+RoGetActivationFactory(Classname_IBluetoothLEDevice, Ref(IID_IBluetoothLEDeviceStatics), ppv) |> AssertSuccess
+bledevice = Ptr{IBluetoothLEDeviceStatics}(ppv[]) |> Ref
+
+# Create a filter for the watcher
+RoGetActivationFactory(Classname_IBluetoothLEAdvertisementFilter, Ref(IID_IActivationFactory), ppv) |> AssertSuccess
+activation_factory = Ptr{IActivationFactory}(ppv[])
+insp = Ptr{IInspectable}(C_NULL) |> Ref
+ActivateInstance(activation_factory, insp) |> AssertSuccess
+QueryInterface(insp[], Ref(IID_IBluetoothLEAdvertisementFilter), ppv) |> AssertSuccess
+filter = Ptr{IBluetoothLEAdvertisementFilter}(ppv[])
+@info "Filter: $(filter)"
+
+# Create the watcher
+RoGetActivationFactory(Classname_IBluetoothLEAdvertisementWatcher, Ref(IID_IBluetoothLEAdvertisementWatcherFactory), ppv) |> AssertSuccess
+factory = Ptr{IBluetoothLEAdvertisementWatcherFactory}(ppv[])
+@info "Factory: $(factory)"
+
+watcher = Ptr{IBluetoothLEAdvertisementWatcher}(C_NULL) |> Ref
+Create(factory, filter, watcher) |> AssertSuccess
+@info "Watcher: $(watcher[])"
+
+filter = Ptr{IBluetoothLEAdvertisementFilter}(C_NULL) |> Ref
+get_AdvertisementFilter(watcher[], filter) |> AssertSuccess
+@info "Filter: $(filter[])"
+
+function GetBTDeviceFromAddress(addr::UInt64)
+    asyncop = Ptr{IAsyncOperation}(C_NULL) |> Ref
+    hr = FromBluetoothAddressAsync(bledevice[], addr, asyncop)
+    if hr == S_OK
+        @info "Got async operation: $(asyncop[])"
+        status = AsyncStatus(0) |> Ref
+
+        @spawn try
+            while true
+                get_Status(asyncop[], status) |> AssertSuccess
+                # @info "Async operation status: $(asyncop[]) $(status[])"
+                if status[] == Completed
+                    device = Ptr{Cvoid}(C_NULL) |> Ref  # Or Ptr{IBluetoothLEDevice} if defined
+                    GetResults(asyncop[], device) |> AssertSuccess
+                    @info "Device obtained: $(device[])"
+                    break
+                elseif status[] == Error
+                    errorCode = HRESULT(0) |> Ref
+                    get_ErrorCode(asyncop[], errorCode) |> AssertSuccess
+                    @error "Async operation failed with error: $(errorCode[])"
+                    break
+                elseif status[] == Canceled
+                    @warn "Async operation was canceled"
+                    break
+                end
+                sleep(0.5)
+            end
+        catch e
+            @error "Exception in GetBTDeviceFromAddress: $e"
+        finally
+            @info "Cleaning up async operation"
+            Release(asyncop[])
+        end
+    else
+        @error "Error calling FromBluetoothAddressAsync: $hr"
+        return C_NULL
+    end
+end
+
 function RecievedCallback_Invoke(this::Ptr{IEventHandler}, watcher::Ptr{IBluetoothLEAdvertisementWatcher}, eventArgs::Ptr{Cvoid})::HRESULT
     # try
         # @info "Received Invoke"
@@ -153,6 +206,7 @@ function RecievedCallback_Invoke(this::Ptr{IEventHandler}, watcher::Ptr{IBluetoo
             len = WindowsGetStringLen(hlocalname[])
             localname = unsafe_wrap(Array, plocalname, len) |> v -> transcode(String, v)
             @info "Invoke: Address: $addrstr Signal Strength: $(signal[]) Local Name: $(localname)"
+            GetBTDeviceFromAddress(addr[])
         end
     # catch e
     #     @error "Error in callback: $e"
@@ -186,10 +240,12 @@ end
 put_ScanningMode(watcher[], Passive) |> AssertSuccess
 Stop(watcher[]) |> AssertSuccess
 
+@info "Waiting..."
+wait() # Forever
+
 @info "Done"
 
-# TDOD
+# TODO
 # - GetGattServicesAsync
 # - GetGattCharacteristicsAsync
 # - GetGattDescriptorsAsync
-
