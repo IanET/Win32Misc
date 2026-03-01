@@ -293,11 +293,11 @@ end
 const IID_IAsyncInfo = GUID(0x00000036, 0x0000, 0x0000, 0xC000, 0x000000000046)
 @interface IAsyncInfo begin
     @inherit IInspectable
-    get_Id::Ptr{Cvoid}
+    get_Id(this::Ptr{IAsyncInfo}, id::Ptr{Int32})::HRESULT
     get_Status(this::Ptr{IAsyncInfo}, status::Ptr{AsyncStatus})::HRESULT
     get_ErrorCode(this::Ptr{IAsyncInfo}, errorCode::Ptr{HRESULT})::HRESULT
-    Cancel::Ptr{Cvoid}
-    Close::Ptr{Cvoid}
+    Cancel(this::Ptr{IAsyncInfo})::HRESULT
+    Close(this::Ptr{IAsyncInfo})::HRESULT
 end
 
 IID_IAsyncActionCompletedHandler = GUID(0xa4ed5c81, 0x76c9, 0x40bd, 0x8be6, 0xb1d90fb20ae7)
@@ -312,6 +312,7 @@ IID_IAsyncOperationCompletedHandler = GUID(0x9fc2b0bb, 0xe446, 0x44e2, 0xaa61, 0
     Invoke(this::Ptr{IAsyncOperationCompletedHandler}, asyncInfo::Ptr{IAsyncInfo}, asyncStatus::AsyncStatus)::HRESULT
 end
 
+IID_IAsyncOperation = GUID(0x00000035, 0x0000, 0x0000, 0xC000, 0x000000000046)
 @interface IAsyncOperation begin
     @inherit IAsyncInfo
     put_Completed(this::Ptr{IAsyncOperation}, handler::Ptr{IAsyncOperationCompletedHandler})::HRESULT

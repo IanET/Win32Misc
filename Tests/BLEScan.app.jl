@@ -1,5 +1,11 @@
 # # Scan for BLE devices and print their addresses and names
 
+# Wait for debugger to attach
+@info "Waiting for debugger to attach..."
+readline()
+
+@info "Started"
+
 include("../common/Win32.jl")
 include("../common/combase.jl")
 using LibBaseTsd, Printf, .W32 
@@ -7,7 +13,6 @@ import Base.Threads: @spawn
 
 IID_Inspectable = GUID(0xaf86e2e0, 0xb12d, 0x4c6a, 0x9c5a, 0xd7aa65101e90)
 IID_IUriFactory = GUID(0x44a9796c, 0x1108, 0x4541, 0xa279, 0x042f0bd441f1)
-IID_IUNKNOWN = GUID(0x00000000, 0x0000, 0x0000, 0xc000, 0x000000000046)
 IID_IActivationFactory = GUID(0x00000035, 0x0000, 0x0000, 0xc000, 0x000000000046)
 IID_IBluetoothLEAdvertisementFilter = GUID(0x131eb0d3, 0xd04e, 0x47b1, 0x837e, 0x49405bf6f80f)
 IID_INoMarshal = GUID(0xecc8691b, 0xc1db, 0x4dc0, 0x855e, 0x65f6c551af49)
@@ -90,7 +95,7 @@ end
 end
 
 const Classname_IBluetoothLEDevice = "Windows.Devices.Bluetooth.BluetoothLEDevice"
-IID_IBluetoothLEDeviceStatics = GUID(0xc8cf1a19, 0xf0b6, 0x4bf0, 0x8689, 0x41303de2d9f4)
+IID_IBluetoothLEDeviceStatics = GUID(0xC8CF1A19, 0xF0B6, 0x4BF0, 0x8689, 0x41303DE2D9F4)
 @interface IBluetoothLEDeviceStatics begin
     @inherit IInspectable
     FromIdAsync::Ptr{Cvoid}
@@ -101,7 +106,7 @@ end
 function RecievedCallback_QueryInterface(this::Ptr{IEventHandler}, riid::Ptr{GUID}, ppv::Ptr{Ptr{Cvoid}})::HRESULT
     guid = unsafe_load(riid)
     # @info "Received QueryInterface: $guid"
-    if guid == IID_IUNKNOWN || guid == IID_Typed_Event_Handler
+    if guid == IID_IUnknown || guid == IID_Typed_Event_Handler
         unsafe_store!(ppv, this)
         return S_OK
     end
@@ -157,44 +162,10 @@ filter = Ptr{IBluetoothLEAdvertisementFilter}(C_NULL) |> Ref
 get_AdvertisementFilter(watcher[], filter) |> AssertSuccess
 @info "Filter: $(filter[])"
 
-# function GetBTDeviceFromAddress(addr::UInt64)
-#     asyncop = Ptr{IAsyncOperation}(C_NULL) |> Ref
-#     hr = FromBluetoothAddressAsync(bledevice[], addr, asyncop)
-#     if hr == S_OK
-#         @info "Got async operation: $(asyncop[])"
-#         status = AsyncStatus(0) |> Ref
-
-#         @spawn try
-#             while true
-#                 get_Status(asyncop[], status) |> AssertSuccess
-#                 # @info "Async operation status: $(asyncop[]) $(status[])"
-#                 if status[] == Completed
-#                     device = Ptr{Cvoid}(C_NULL) |> Ref  # Or Ptr{IBluetoothLEDevice} if defined
-#                     GetResults(asyncop[], device) |> AssertSuccess
-#                     @info "Device obtained: $(device[])"
-#                     break
-#                 elseif status[] == Error
-#                     errorCode = HRESULT(0) |> Ref
-#                     get_ErrorCode(asyncop[], errorCode) |> AssertSuccess
-#                     @error "Async operation failed with error: $(errorCode[])"
-#                     break
-#                 elseif status[] == Canceled
-#                     @warn "Async operation was canceled"
-#                     break
-#                 end
-#                 sleep(0.5)
-#             end
-#         catch e
-#             @error "Exception in GetBTDeviceFromAddress: $e"
-#         finally
-#             @info "Cleaning up async operation"
-#             Release(asyncop[])
-#         end
-#     else
-#         @error "Error calling FromBluetoothAddressAsync: $hr"
-#         return C_NULL
-#     end
-# end
+function AsyncOperationCompletedHandler_Invoke(this::Ptr{IAsyncOperationCompletedHandler}, asyncInfo::Ptr{IAsyncInfo}, asyncStatus::AsyncStatus)::HRESULT
+    @info "Async operation completed with status: $asyncStatus"
+    return S_OK
+end
 
 asyncCompletedHandlerImp = IAsyncOperationCompletedHandlerVtbl(
     IUnknownVtbl(
@@ -202,12 +173,11 @@ asyncCompletedHandlerImp = IAsyncOperationCompletedHandlerVtbl(
         @cfunction(AsyncCompletedHandler_AddRef, UInt32, (Ptr{IAsyncOperationCompletedHandler},)),
         @cfunction(AsyncCompletedHandler_Release, UInt32, (Ptr{IAsyncOperationCompletedHandler},))
     ),
-    @cfunction((this, asyncInfo, asyncStatus) -> begin
-        @info "Async operation completed with status: $asyncStatus"
-        return S_OK
-    end, HRESULT, (Ptr{IAsyncOperationCompletedHandler}, Ptr{IAsyncOperation}, AsyncStatus))
+    @cfunction(AsyncOperationCompletedHandler_Invoke, HRESULT, (Ptr{IAsyncOperationCompletedHandler}, Ptr{IAsyncInfo}, AsyncStatus))
 ) |> Ref
 asyncCompletedHandler = IAsyncOperationCompletedHandler(pointer_from_objref(asyncCompletedHandlerImp)) |> Ref
+
+# IID_IAsyncOperation_BluetoothLEDevice = GUID(0xea7c76c4, 0x7310, 0x529e, 0x9c15, 0x6f3940f5a46e)
 
 function RecievedCallback_Invoke(this::Ptr{IEventHandler}, watcher::Ptr{IBluetoothLEAdvertisementWatcher}, eventArgs::Ptr{Cvoid})::HRESULT
     # try
@@ -232,6 +202,40 @@ function RecievedCallback_Invoke(this::Ptr{IEventHandler}, watcher::Ptr{IBluetoo
             hr = FromBluetoothAddressAsync(bledevice[], addr[], asyncop)
             if hr == S_OK
                 @info "Got async operation: $(asyncop[])"
+                QueryInterface(asyncop[], Ref(IID_IUnknown), ppv) |> AssertSuccess
+                QueryInterface(asyncop[], Ref(IID_IInspectable), ppv) |> AssertSuccess
+                QueryInterface(asyncop[], Ref(IID_IAsyncInfo), ppv) |> AssertSuccess
+
+                # Dump the vtable for debugging
+                unsafe_load(asyncop[]).lpvtbl |> unsafe_load |> dump
+
+                level = TrustLevel(0) |> Ref
+                GetTrustLevel(insp[], level) |> AssertSuccess
+                @info "Trust level: $(level[])"
+
+# @ccall DebugBreak()::Cvoid
+# @ccall SetConsoleTitleW("Debug Console"::Cwstring)::Cvoid
+
+                # Crashes
+                id = Int32(0) |> Ref
+                asyncinfo = Ptr{IAsyncInfo}(asyncop[]) |> Ref
+                get_Id(asyncinfo[], id) |> AssertSuccess
+
+
+                # QueryInterface(asyncop[], Ref(IID_IAsyncOperation_BluetoothLEDevice), ppv) |> AssertSuccess
+
+                # @info "AddRef" AddRef(asyncop[])
+                # @info "Release" Release(asyncop[])
+
+                # count = UInt32(0) |> Ref
+                # ids = Ptr{GUID}(C_NULL) |> Ref
+                # insp = Ptr{IInspectable}(asyncop[]) |> Ref
+                # GetIids(insp[], count, ids) |> AssertSuccess
+
+                # GetRuntimeClassName(asyncop[], HSTRING(0) |> Ref) |> AssertSuccess
+
+                # get_Status(asyncop[], ppv) |> AssertSuccess
+                # get_ErrorCode(asyncop[], ppv) |> AssertSuccess
                 # put_Completed(asyncop[], asyncCompletedHandler) |> AssertSuccess
             else
                 @error "Error calling FromBluetoothAddressAsync: $hr"
