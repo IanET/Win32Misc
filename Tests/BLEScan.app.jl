@@ -225,7 +225,6 @@ function RecievedCallback_Invoke(this::Ptr{IEventHandler}, watcher::Ptr{IBluetoo
             push!(seen, addr[])
             signal = Int16(0) |> Ref
             get_RawSignalStrengthInDBm(eventArgs, signal) |> AssertSuccess
-            addrstr = @sprintf("%012X", addr[])
             advertisement = Ptr{IBluetoothLEAdvertisement}(C_NULL) |> Ref
             get_Advertisement(eventArgs, advertisement) |> AssertSuccess
             hlocalname = HSTRING() |> Ref
@@ -233,6 +232,7 @@ function RecievedCallback_Invoke(this::Ptr{IEventHandler}, watcher::Ptr{IBluetoo
             plocalname = WindowsGetStringRawBuffer(hlocalname[], C_NULL) 
             len = WindowsGetStringLen(hlocalname[])
             localname = unsafe_wrap(Array, plocalname, len) |> v -> transcode(String, v)
+            # addrstr = @sprintf("%012X", addr[])
             # @info "Invoke: Address: $addrstr Signal Strength: $(signal[]) Local Name: $(localname)"
             asyncop = Ptr{IAsyncOperation}(C_NULL) |> Ref
             FromBluetoothAddressAsync(bledevice[], addr[], asyncop) |> AssertSuccess
@@ -261,21 +261,8 @@ token = UInt64(0) |> Ref
 put_ScanningMode(watcher[], Active) |> AssertSuccess
 add_Received(watcher[], eventHandler, token)
 Start(watcher[]) |> AssertSuccess
-# for i in 10:-1:1
-#     get_Status(watcher[], status) |> AssertSuccess
-#     get_ScanningMode(watcher[], mode) |> AssertSuccess
-#     @info "($i) Status: $(status[]) Mode: $(mode[])"
-#     sleep(5)
-# end
-# sleep(30)
-# put_ScanningMode(watcher[], Passive) |> AssertSuccess
-# Stop(watcher[]) |> AssertSuccess
 
 @info "Waiting..."
 wait() # Forever
 @info "Done"
 
-# TODO
-# - GetGattServicesAsync
-# - GetGattCharacteristicsAsync
-# - GetGattDescriptorsAsync
