@@ -1,7 +1,8 @@
 # # Scan for BLE devices and print their addresses and names
 
 # Wait for debugger to attach
-@info "Waiting for debugger to attach..."
+pid = @ccall GetCurrentProcessId()::UInt32
+@info "Waiting for enter to attach to process $pid..."
 readline()
 
 @info "Started"
@@ -17,6 +18,7 @@ IID_IActivationFactory = GUID(0x00000035, 0x0000, 0x0000, 0xc000, 0x000000000046
 IID_IBluetoothLEAdvertisementFilter = GUID(0x131eb0d3, 0xd04e, 0x47b1, 0x837e, 0x49405bf6f80f)
 IID_INoMarshal = GUID(0xecc8691b, 0xc1db, 0x4dc0, 0x855e, 0x65f6c551af49)
 IID_Typed_Event_Handler = GUID(0x90eb4eca, 0xd465, 0x5ea0, 0xa61c, 0x033c8c5ecef2)
+IID_IAsyncOperation_BluetoothLEDevice = GUID(0x7a900af8, 0xb975, 0x45f7, 0x8c93, 0x3ae17df5c5d0)
 
 seen = Set{UInt64}()
 
@@ -177,7 +179,6 @@ asyncCompletedHandlerImp = IAsyncOperationCompletedHandlerVtbl(
 ) |> Ref
 asyncCompletedHandler = IAsyncOperationCompletedHandler(pointer_from_objref(asyncCompletedHandlerImp)) |> Ref
 
-IID_IAsyncOperation_BluetoothLEDevice = GUID(0x7a900af8, 0xb975, 0x45f7, 0x8c93, 0x3ae17df5c5d0)
 
 function RecievedCallback_Invoke(this::Ptr{IEventHandler}, watcher::Ptr{IBluetoothLEAdvertisementWatcher}, eventArgs::Ptr{Cvoid})::HRESULT
     # try
@@ -242,13 +243,28 @@ function RecievedCallback_Invoke(this::Ptr{IEventHandler}, watcher::Ptr{IBluetoo
                 get_Status(asyncinfo[], status) |> AssertSuccess
                 @info "Async operation status: $(status[])"
 
-                if status[] == Completed
-                    QueryInterface(asyncop[], Ref(IID_IAsyncOperation_BluetoothLEDevice), ppv) |> AssertSuccess
-                    asyncopdev = Ptr{IAsyncOperation}(ppv[]) |> Ref
-                    results = Ptr{Cvoid}(C_NULL) |> Ref
-                    GetResults(asyncopdev[], results) |> AssertSuccess
-                    @info "Got result: $(results[])"
-                end
+                QueryInterface(asyncop[], Ref(IID_IAsyncOperation_BluetoothLEDevice), ppv) |> AssertSuccess
+                asyncopdev = Ptr{IAsyncOperation}(ppv[]) |> Ref
+                results = Ptr{Cvoid}(C_NULL) |> Ref
+                GetResults(asyncopdev[], results) |> AssertSuccess
+                @info "Got result: $(results[])"
+
+                # QueryInterface(asyncop[], Ref(IID_IAsyncOperation_BluetoothLEDevice), ppv) |> AssertSuccess
+                # asyncopdev = Ptr{IAsyncOperation}(ppv[]) |> Ref
+                # if status[] == Completed
+                #     results = Ptr{Cvoid}(C_NULL) |> Ref
+                #     GetResults(asyncopdev[], results) |> AssertSuccess
+                #     @info "Got result: $(results[])"
+                # elseif status[] == Error
+                #     error_code = HRESULT(0) |> Ref
+                #     get_ErrorCode(asyncopdev[], error_code) |> AssertSuccess
+                #     @error "Async operation failed with error code: $(error_code[])"
+                # elseif status[] == Canceled
+                #     @warn "Async operation was canceled"
+                # else # Started
+                #     put_Completed(asyncopdev[], asyncCompletedHandler) |> AssertSuccess
+                #     @info "Set completed handler"
+                # end
 
 
 
@@ -256,10 +272,6 @@ function RecievedCallback_Invoke(this::Ptr{IEventHandler}, watcher::Ptr{IBluetoo
                 # handler = Ptr{IAsyncOperationCompletedHandler}(C_NULL) |> Ref
                 # get_Completed(asyncopdev[], handler) |> AssertSuccess
                 # @info "Got completed handler: $(handler[])"
-
-
-
-
 
                 # Dump the vtable for debugging
                 # unsafe_load(asyncop[]).lpvtbl |> unsafe_load |> dump
