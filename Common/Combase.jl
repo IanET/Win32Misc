@@ -314,17 +314,7 @@ end
 
 IID_IAsyncOperation = GUID(0x00000035, 0x0000, 0x0000, 0xC000, 0x000000000046)
 @interface IAsyncOperation begin
-    QueryInterface(this::Ptr{IAsyncOperation}, riid::Ptr{GUID}, ppv::Ptr{Ptr{Cvoid}})::HRESULT
-    AddRef(this::Ptr{IAsyncOperation})::UInt32
-    Release(this::Ptr{IAsyncOperation})::UInt32
-    GetIids(this::Ptr{IAsyncOperation}, count::Ptr{UInt32}, iids::Ptr{Ptr{GUID}})::HRESULT
-    GetRuntimeClassName(this::Ptr{IAsyncOperation}, className::Ptr{HSTRING})::HRESULT
-    GetTrustLevel(this::Ptr{IAsyncOperation}, trustLevel::Ptr{TrustLevel})::HRESULT
-    # get_Id(this::Ptr{IAsyncOperation}, id::Ptr{Int32})::HRESULT
-    # get_Status(this::Ptr{IAsyncOperation}, status::Ptr{AsyncStatus})::HRESULT
-    # get_ErrorCode(this::Ptr{IAsyncOperation}, errorCode::Ptr{HRESULT})::HRESULT
-    # Cancel(this::Ptr{IAsyncOperation})::HRESULT
-    # Close(this::Ptr{IAsyncOperation})::HRESULT
+    @inherit IInspectable
     put_Completed(this::Ptr{IAsyncOperation}, handler::Ptr{IAsyncOperationCompletedHandler})::HRESULT
     get_Completed(this::Ptr{IAsyncOperation}, handler::Ptr{Ptr{IAsyncOperationCompletedHandler}})::HRESULT
     GetResults(this::Ptr{IAsyncOperation}, results::Ptr{Ptr{Cvoid}})::HRESULT
