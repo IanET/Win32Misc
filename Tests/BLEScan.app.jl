@@ -18,7 +18,8 @@ IID_IActivationFactory = GUID(0x00000035, 0x0000, 0x0000, 0xc000, 0x000000000046
 IID_IBluetoothLEAdvertisementFilter = GUID(0x131eb0d3, 0xd04e, 0x47b1, 0x837e, 0x49405bf6f80f)
 IID_INoMarshal = GUID(0xecc8691b, 0xc1db, 0x4dc0, 0x855e, 0x65f6c551af49)
 IID_Typed_Event_Handler = GUID(0x90eb4eca, 0xd465, 0x5ea0, 0xa61c, 0x033c8c5ecef2)
-IID_IAsyncOperation_BluetoothLEDevice = GUID(0x7a900af8, 0xb975, 0x45f7, 0x8c93, 0x3ae17df5c5d0)
+# IID_IAsyncOperation_BluetoothLEDevice = GUID(0x7a900af8, 0xb975, 0x45f7, 0x8c93, 0x3ae17df5c5d0)
+IID_IAsyncOperation_BluetoothLEDevice = GUID(0x62773950, 0xA227, 0x5827, 0x8E5A, 0x6E43801F410F)
 
 seen = Set{UInt64}()
 
@@ -221,9 +222,20 @@ function RecievedCallback_Invoke(this::Ptr{IEventHandler}, watcher::Ptr{IBluetoo
                 QueryInterface(asyncop[], Ref(IID_IAsyncInfo), ppv) |> AssertSuccess
                 @info "Got IAsyncInfo: $(ppv[])"
                 asyncinfo = Ptr{IAsyncOperation}(ppv[]) |> Ref
-                QueryInterface(asyncop[], Ref(IID_IAsyncOperation_BluetoothLEDevice), ppv) |> AssertSuccess
-                @info "Got IAsyncOperation_BluetoothLEDevice: $(ppv[])"
-                asyncopdev = Ptr{IAsyncOperation}(ppv[]) |> Ref
+                # QueryInterface(asyncop[], Ref(IID_IAsyncOperation_BluetoothLEDevice), ppv) |> AssertSuccess
+                # @info "Got IAsyncOperation_BluetoothLEDevice: $(ppv[])"
+                # asyncopdev = Ptr{IAsyncOperation}(ppv[]) |> Ref
+
+                # QueryInterface(asyncopdev[], Ref(IID_IInspectable), ppv) |> AssertSuccess
+                # @info "Got IInspectable: $(ppv[])"
+                # count = UInt32(0) |> Ref
+                # ids = Ptr{GUID}(C_NULL) |> Ref 
+                # insp = Ptr{IInspectable}(asyncop[]) |> Ref
+                # GetIids(insp[], count, ids) |> AssertSuccess
+                # @info "Supported IIDs:"
+                # for i in 1:count[]
+                #     @info "  $(unsafe_load(ids[] + (i-1)*sizeof(GUID)))"
+                # end
 
                 # Note the vtbls are different
                 # unsafe_load(asyncinfo[]).lpvtbl |> unsafe_load |> dump
@@ -234,7 +246,7 @@ function RecievedCallback_Invoke(this::Ptr{IEventHandler}, watcher::Ptr{IBluetoo
                 # @info "Got IUnknown: $(ppv[])"
 
                 QueryInterface(asyncop[], Ref(IID_IAsyncInfo), ppv) |> AssertSuccess
-                asyncinfo = Ptr{IAsyncOperation}(ppv[]) |> Ref
+                asyncinfo = Ptr{IAsyncInfo}(ppv[]) |> Ref
                 @info "Got IAsyncInfo: $(asyncinfo[])"
                 id = Int32(0) |> Ref
                 get_Id(asyncinfo[], id) |> AssertSuccess
@@ -243,10 +255,23 @@ function RecievedCallback_Invoke(this::Ptr{IEventHandler}, watcher::Ptr{IBluetoo
                 get_Status(asyncinfo[], status) |> AssertSuccess
                 @info "Async operation status: $(status[])"
 
-                QueryInterface(asyncop[], Ref(IID_IAsyncOperation_BluetoothLEDevice), ppv) |> AssertSuccess
-                asyncopdev = Ptr{IAsyncOperation}(ppv[]) |> Ref
+                # QueryInterface(asyncop[], Ref(IID_IAsyncOperation_BluetoothLEDevice), ppv) |> AssertSuccess
+                # asyncopdev = Ptr{IAsyncOperation}(ppv[]) |> Ref
+                # dump(asyncopdev[])
+                # unsafe_load(asyncopdev[]).lpvtbl |> unsafe_load |> dump
+                # sleep(1)
+
                 results = Ptr{Cvoid}(C_NULL) |> Ref
-                GetResults(asyncopdev[], results) |> AssertSuccess
+                hr = E_FAIL
+                while hr != S_OK
+                    @ccall DebugBreak()::Cvoid
+                    # QueryInterface(asyncop[], Ref(IID_IAsyncOperation_BluetoothLEDevice), ppv)
+                    # @info "Queried IAsyncOperation_BluetoothLEDevice: $(ppv[])"
+                    # @ccall DebugBreak()::Cvoid
+                    # hr = GetResults(asyncopdev[], results)
+                    hr = GetResults(asyncop[], results)
+                    @info "GetResults returned $hr, retrying..."
+                end
                 @info "Got result: $(results[])"
 
                 # QueryInterface(asyncop[], Ref(IID_IAsyncOperation_BluetoothLEDevice), ppv) |> AssertSuccess
