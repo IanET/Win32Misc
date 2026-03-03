@@ -424,4 +424,10 @@ function RoGetActivationFactory(activatableClassId::Union{String, OLESTR}, riid,
     WindowsDeleteString(hs)
 end
 
+function HstringToString(hs::HSTRING)
+    len = WindowsGetStringLen(hs)
+    buf = WindowsGetStringRawBuffer(hs, Ref(len))
+    return unsafe_wrap(Array, buf, len) |> v -> transcode(String, v)
+end 
+
 nothing
