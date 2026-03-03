@@ -1,5 +1,7 @@
 using Printf, CEnum
 
+# TODO - Fix use of MemoryRef
+
 const Combase = "Combase.dll"
 import .W32: HMODULE, HANDLE, UINT, LPCWSTR, LONG, HWND, WCHAR, BYTE, POINT, TRUE, FALSE, ULONG
 import .GC: @preserve
@@ -9,6 +11,7 @@ const HSTRING = HANDLE
 const PCNZWCH = LPCWSTR
 const LpifaceLESTR = LPCWSTR
 const OLESTR = Vector{WCHAR}
+const PCWSTR = LPCWSTR
 
 const S_OK = 0
 const S_FALSE = 1
@@ -70,6 +73,8 @@ Base.show(io::IO, g::GUID) = @printf(io, "{%08x-%04x-%04x-%04x-%012x}", g.Data1,
 IIDFromString(lpsz, lpiid) = @ccall Combase.IIDFromString(lpsz::LpifaceLESTR, lpiid::Ptr{IID})::HRESULT
 WindowsCreateString(sourceString, len, str) = @ccall Combase.WindowsCreateString(sourceString::PCNZWCH, len::UINT, str::Ptr{HSTRING})::HRESULT
 WindowsDeleteString(str) = @ccall Combase.WindowsDeleteString(str::HSTRING)::HRESULT
+WindowsGetStringLen(str) = @ccall Combase.WindowsGetStringLen(str::HSTRING)::UINT
+WindowsGetStringRawBuffer(str, len) = @ccall Combase.WindowsGetStringRawBuffer(str::HSTRING, len::Ref{UINT})::PCWSTR
 RoInitialize(initType) = @ccall Combase.RoInitialize(initType::UINT)::HRESULT
 RoUninitialize() = @ccall Combase.RoUninitialize()::HRESULT
 RoGetActivationFactory(activatableClassId::HSTRING, riid, out) = @ccall Combase.RoGetActivationFactory(activatableClassId::HSTRING, riid::REFIID, out::Ptr{Ptr{Cvoid}})::HRESULT
@@ -96,18 +101,18 @@ Vtbl(piface::PtrInterface) = piface |> unsafe_load |> Vtbl
 
 Base.fieldoffset(t::DataType, field::Symbol) = fieldoffset(t, Base.fieldindex(t, field))
 
-function function_ptr_old(pif::Ptr{<:Interface}, T::DataType, name::Symbol)
-    @assert pif != C_NULL
-    vtblptr = unsafe_load(Ptr{UInt64}(pif))
-    local off
-    if name == :QueryInterface; off = Base.fieldoffset(T, 1)
-    elseif name == :AddRef; off = Base.fieldoffset(T, 2)
-    elseif name == :Release; off = Base.fieldoffset(T, 3)
-    else off = Base.fieldoffset(T, name)
-    end
-    methptr = unsafe_load(Ptr{UInt64}(vtblptr + off))
-    return methptr |> Ptr{Cvoid}
-end
+# function function_ptr_old(pif::Ptr{<:Interface}, T::DataType, name::Symbol)
+#     @assert pif != C_NULL
+#     vtblptr = unsafe_load(Ptr{UInt64}(pif))
+#     local off
+#     if name == :QueryInterface; off = Base.fieldoffset(T, 1)
+#     elseif name == :AddRef; off = Base.fieldoffset(T, 2)
+#     elseif name == :Release; off = Base.fieldoffset(T, 3)
+#     else off = Base.fieldoffset(T, name)
+#     end
+#     methptr = unsafe_load(Ptr{UInt64}(vtblptr + off))
+#     return methptr |> Ptr{Cvoid}
+# end
 
 function function_offset(list...)
     off = 0
@@ -278,26 +283,41 @@ end
     Invoke::Ptr{Cvoid}
 end
 
+@cenum AsyncStatus begin
+    Started = 0
+    Completed = 1
+    Canceled = 2
+    Error = 3
+end
+
 const IID_IAsyncInfo = GUID(0x00000036, 0x0000, 0x0000, 0xC000, 0x000000000046)
 @interface IAsyncInfo begin
     @inherit IInspectable
-    get_Id::Ptr{Cvoid}
-    get_Status::Ptr{Cvoid}
-    get_ErrorCode::Ptr{Cvoid}
-    Cancel::Ptr{Cvoid}
-    Close::Ptr{Cvoid}
+    get_Id(this::Ptr{IAsyncInfo}, id::Ptr{Int32})::HRESULT
+    get_Status(this::Ptr{IAsyncInfo}, status::Ptr{AsyncStatus})::HRESULT
+    get_ErrorCode(this::Ptr{IAsyncInfo}, errorCode::Ptr{HRESULT})::HRESULT
+    Cancel(this::Ptr{IAsyncInfo})::HRESULT
+    Close(this::Ptr{IAsyncInfo})::HRESULT
 end
 
+IID_IAsyncActionCompletedHandler = GUID(0xa4ed5c81, 0x76c9, 0x40bd, 0x8be6, 0xb1d90fb20ae7)
 @interface IAsyncActionCompletedHandler begin
-    @inherit IAsyncInfo
-    Invoke::Ptr{Cvoid}
+    @inherit IUnknown
+    Invoke(this::Ptr{IAsyncActionCompletedHandler}, asyncInfo::Ptr{IAsyncInfo}, asyncStatus::AsyncStatus)::HRESULT
 end
 
+IID_IAsyncOperationCompletedHandler = GUID(0x9fc2b0bb, 0xe446, 0x44e2, 0xaa61, 0x9cab8f636af2)  # Same as IAsyncOperation, but for handler
+@interface IAsyncOperationCompletedHandler begin
+    @inherit IUnknown
+    Invoke(this::Ptr{IAsyncOperationCompletedHandler}, asyncInfo::Ptr{IAsyncInfo}, asyncStatus::AsyncStatus)::HRESULT
+end
+
+IID_IAsyncOperation = GUID(0x00000035, 0x0000, 0x0000, 0xC000, 0x000000000046)
 @interface IAsyncOperation begin
     @inherit IInspectable
-    put_Completed::Ptr{Cvoid}
-    get_Completed::Ptr{Cvoid}
-    GetResults::Ptr{Cvoid}
+    put_Completed(this::Ptr{IAsyncOperation}, handler::Ptr{IAsyncOperationCompletedHandler})::HRESULT
+    get_Completed(this::Ptr{IAsyncOperation}, handler::Ptr{Ptr{IAsyncOperationCompletedHandler}})::HRESULT
+    GetResults(this::Ptr{IAsyncOperation}, results::Ptr{Ptr{Cvoid}})::HRESULT
 end
 
 # --- Helpers ---
@@ -338,12 +358,12 @@ end
 Base.getindex(r::JComObj) = r.ptr
 JComObj{T}(obj) where T <: Interface = JComObj{T}(Ref(obj))
 
-function WindowsCreateString(sz::OLESTR)
+function WindowsCreateString(str::AbstractArray{UInt16})
     rhstr = HSTRING(0) |> Ref
-    hr = WindowsCreateString(sz, length(sz)-1, rhstr)
+    hr = WindowsCreateString(str, length(str)-1, rhstr)
     return (hstring = rhstr[], hresult = hr)
-end
-WindowsCreateString(str::String) = Base.cconvert(Cwstring, str) |> WindowsCreateString
+end 
+WindowsCreateString(str::String) = WindowsCreateString(Base.cwstring(str))
 
 function AssertSuccess(hr::HRESULT)
     if hr != S_OK; throw(ErrorException(@sprintf("HRESULT: 0x%x", reinterpret(UInt32, hr)))) end
