@@ -203,39 +203,15 @@ function AsyncOperationCompletedHandler_Invoke(this::Ptr{IAsyncOperationComplete
     return S_OK
 end
 
-# asyncCompletedHandlerImp = IAsyncOperationCompletedHandlerVtbl(
-#     IUnknownVtbl(
-#         @cfunction(AsyncCompletedHandler_QueryInterface, HRESULT, (Ptr{IAsyncOperationCompletedHandler}, Ptr{GUID}, Ptr{Ptr{Cvoid}})),
-#         @cfunction(AsyncCompletedHandler_AddRef, UInt32, (Ptr{IAsyncOperationCompletedHandler},)),
-#         @cfunction(AsyncCompletedHandler_Release, UInt32, (Ptr{IAsyncOperationCompletedHandler},))
-#     ),
-#     @cfunction(AsyncOperationCompletedHandler_Invoke, HRESULT, (Ptr{IAsyncOperationCompletedHandler}, Ptr{IAsyncOperation}, AsyncStatus))
-# ) |> Ref
-
-# asyncCompletedHandlerImp = IAsyncOperationCompletedHandlerVtbl(
-#     IUnknownVtbl(
-#         @cfunc AsyncCompletedHandler_QueryInterface(this::Ptr{IAsyncOperationCompletedHandler}, riid::Ptr{GUID}, ppv::Ptr{Ptr{Cvoid}})::HRESULT,
-#         @cfunc AsyncCompletedHandler_AddRef(this::Ptr{IAsyncOperationCompletedHandler})::UInt32,
-#         @cfunc AsyncCompletedHandler_Release(this::Ptr{IAsyncOperationCompletedHandler})::UInt32
-#     ),
-#     @cfunction(AsyncOperationCompletedHandler_Invoke, HRESULT, (Ptr{IAsyncOperationCompletedHandler}, Ptr{IAsyncOperation}, AsyncStatus))
-# ) |> Ref
-
-pfn_AsyncCompletedHandler_QueryInterface = @cfunc AsyncCompletedHandler_QueryInterface(this::Ptr{IAsyncOperationCompletedHandler}, riid::Ptr{GUID}, ppv::Ptr{Ptr{Cvoid}})::HRESULT
-pfn_AsyncCompletedHandler_AddRef = @cfunc AsyncCompletedHandler_AddRef(this::Ptr{IAsyncOperationCompletedHandler})::UInt32
-pfn_AsyncCompletedHandler_Release = @cfunc AsyncCompletedHandler_Release(this::Ptr{IAsyncOperationCompletedHandler})::UInt32
-pfn_AsyncOperationCompletedHandler_Invoke = @cfunc AsyncOperationCompletedHandler_Invoke(this::Ptr{IAsyncOperationCompletedHandler}, asyncInfo::Ptr{IAsyncOperation}, asyncStatus::AsyncStatus)::HRESULT
-
 asyncCompletedHandlerImp = IAsyncOperationCompletedHandlerVtbl(
     IUnknownVtbl(
-        pfn_AsyncCompletedHandler_QueryInterface,
-        pfn_AsyncCompletedHandler_AddRef,
-        pfn_AsyncCompletedHandler_Release
+        @cfunc(AsyncCompletedHandler_QueryInterface(::Ptr{IAsyncOperationCompletedHandler}, ::Ptr{GUID}, ::Ptr{Ptr{Cvoid}})::HRESULT),
+        @cfunc(AsyncCompletedHandler_AddRef(::Ptr{IAsyncOperationCompletedHandler})::UInt32),
+        @cfunc(AsyncCompletedHandler_Release(::Ptr{IAsyncOperationCompletedHandler})::UInt32)
     ),
-    pfn_AsyncOperationCompletedHandler_Invoke
+    @cfunc(AsyncOperationCompletedHandler_Invoke(::Ptr{IAsyncOperationCompletedHandler}, ::Ptr{IAsyncOperation}, ::AsyncStatus)::HRESULT)
 ) |> Ref
 asyncCompletedHandler = IAsyncOperationCompletedHandler(pointer_from_objref(asyncCompletedHandlerImp)) |> Ref
-
 
 function RecievedCallback_Invoke(this::Ptr{IEventHandler}, watcher::Ptr{IBluetoothLEAdvertisementWatcher}, eventArgs::Ptr{Cvoid})::HRESULT
     # try
@@ -268,11 +244,11 @@ end
 
 eventHandlerImp = IEventHandlerVtbl(
     IUnknownVtbl(
-        @cfunction(RecievedCallback_QueryInterface, HRESULT, (Ptr{IEventHandler}, Ptr{GUID}, Ptr{Ptr{Cvoid}})),
-        @cfunction(RecievedCallback_AddRef, UInt32, (Ptr{IEventHandler},)),
-        @cfunction(RecievedCallback_Release, UInt32, (Ptr{IEventHandler},))
+        @cfunc(RecievedCallback_QueryInterface(::Ptr{IEventHandler}, ::Ptr{GUID}, ::Ptr{Ptr{Cvoid}})::HRESULT),
+        @cfunc(RecievedCallback_AddRef(::Ptr{IEventHandler})::UInt32),
+        @cfunc(RecievedCallback_Release(::Ptr{IEventHandler})::UInt32)
     ),
-    @cfunction(RecievedCallback_Invoke, HRESULT, (Ptr{IEventHandler}, Ptr{IBluetoothLEAdvertisementWatcher}, Ptr{Cvoid}))
+    @cfunc(RecievedCallback_Invoke(::Ptr{IEventHandler}, ::Ptr{IBluetoothLEAdvertisementWatcher}, ::Ptr{Cvoid})::HRESULT)
 ) |> Ref
 eventHandler = IEventHandler(pointer_from_objref(eventHandlerImp)) |> Ref
 
