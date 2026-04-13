@@ -101,19 +101,6 @@ Vtbl(piface::PtrInterface) = piface |> unsafe_load |> Vtbl
 
 Base.fieldoffset(t::DataType, field::Symbol) = fieldoffset(t, Base.fieldindex(t, field))
 
-# function function_ptr_old(pif::Ptr{<:Interface}, T::DataType, name::Symbol)
-#     @assert pif != C_NULL
-#     vtblptr = unsafe_load(Ptr{UInt64}(pif))
-#     local off
-#     if name == :QueryInterface; off = Base.fieldoffset(T, 1)
-#     elseif name == :AddRef; off = Base.fieldoffset(T, 2)
-#     elseif name == :Release; off = Base.fieldoffset(T, 3)
-#     else off = Base.fieldoffset(T, name)
-#     end
-#     methptr = unsafe_load(Ptr{UInt64}(vtblptr + off))
-#     return methptr |> Ptr{Cvoid}
-# end
-
 function function_offset(list...)
     off = 0
     for i in 1:length(list)-1
@@ -149,9 +136,7 @@ AddRef(piface::Ptr{Interface{T}}) where T <: Vtbl = @ccall $(function_ptr(piface
 Release(piface::Ptr{Interface{T}}) where T <: Vtbl = @ccall $(function_ptr(piface, :IUnknownVtbl, :Release))(piface::Ptr{Cvoid})::ULONG
 QueryInterface(piface::Ptr{Interface{T}}, riid, ppv) where T <: Vtbl = @ccall $(function_ptr(piface, :IUnknownVtbl, :QueryInterface))(piface::Ptr{Cvoid}, riid::REFIID, ppv::Ptr{Ptr{Cvoid}})::HRESULT
 
-sym_expr(s::String) = :(Symbol($s))
-
-function comcall_internal(expr)
+function _comcall_internal(expr)
     @assert expr.head == Symbol("::") && expr.args[1].head == :call "Expression must be a function call with explicit types ala @ccall"
     funcexp = expr.args[1]
     rettype = expr.args[2]
@@ -159,13 +144,13 @@ function comcall_internal(expr)
     argnames = [x.args[1] for x in funcexp.args[2:end]]
     argtypes = [x.args[2] for x in funcexp.args[2:end]]
     if funcexp.args[1] isa Symbol
-        apinamesymexp = sym_expr("$(funcexp.args[1])")
-        vttexp = sym_expr("$(argtypes[1].args[2])Vtbl")
+        apinamesymexp = QuoteNode(Symbol(funcexp.args[1]))
+        vttexp = QuoteNode(Symbol(argtypes[1].args[2], :Vtbl))
         return :(ccall(function_ptr($p1, $vttexp, $apinamesymexp), $(rettype), ($(argtypes...),), $(argnames...)))
     elseif funcexp.args[1] isa Expr && funcexp.args[1].head == :.
-        ifaceexp = sym_expr("$(funcexp.args[1].args[1])Vtbl")
-        apinamesymexp = sym_expr("$(funcexp.args[1].args[2].value)")
-        vttexp = sym_expr("$(argtypes[1].args[2])Vtbl")
+        ifaceexp = QuoteNode(Symbol(funcexp.args[1].args[1], :Vtbl))
+        apinamesymexp = QuoteNode(Symbol(funcexp.args[1].args[2].value))
+        vttexp = QuoteNode(Symbol(argtypes[1].args[2], :Vtbl))
         return :(ccall(function_ptr($p1, $vttexp, $ifaceexp, $apinamesymexp), $(rettype), ($(argtypes...),), $(argnames...)))
     end
 
@@ -173,7 +158,7 @@ function comcall_internal(expr)
 end
 
 macro comcall(expr)
-    return esc(comcall_internal(expr))
+    return esc(_comcall_internal(expr))
 end
 
 # @macroexpand @comcall AddRef(this::Ptr{IUnknown})::ULONG # test
@@ -246,7 +231,7 @@ macro interface(name, block)
     comcalls = Expr[]
     for (i, method) in enumerate(methods)
         if !is_void_ptr_expr(method.args[2])
-            callexp = :($(untype_method(method)) = $(comcall_internal(method)))
+            callexp = :($(untype_method(method)) = $(_comcall_internal(method)))
             push!(comcalls, callexp)
             methodname = method.args[1].args[1]
             methods[i] = :($methodname::Ptr{Cvoid})
