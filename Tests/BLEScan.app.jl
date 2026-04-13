@@ -12,7 +12,6 @@ include("../common/combase.jl")
 using LibBaseTsd, Printf, .W32 
 import Base.Threads: @spawn
 
-IID_Inspectable = GUID(0xaf86e2e0, 0xb12d, 0x4c6a, 0x9c5a, 0xd7aa65101e90)
 IID_IUriFactory = GUID(0x44a9796c, 0x1108, 0x4541, 0xa279, 0x042f0bd441f1)
 IID_IActivationFactory = GUID(0x00000035, 0x0000, 0x0000, 0xc000, 0x000000000046)
 IID_IBluetoothLEAdvertisementFilter = GUID(0x131eb0d3, 0xd04e, 0x47b1, 0x837e, 0x49405bf6f80f)
@@ -206,14 +205,13 @@ end
 
 asyncCompletedHandlerImp = IAsyncOperationCompletedHandlerVtbl(
     IUnknownVtbl(
-        @cfunction(AsyncCompletedHandler_QueryInterface, HRESULT, (Ptr{IAsyncOperationCompletedHandler}, Ptr{GUID}, Ptr{Ptr{Cvoid}})),
-        @cfunction(AsyncCompletedHandler_AddRef, UInt32, (Ptr{IAsyncOperationCompletedHandler},)),
-        @cfunction(AsyncCompletedHandler_Release, UInt32, (Ptr{IAsyncOperationCompletedHandler},))
+        @cfunc(AsyncCompletedHandler_QueryInterface(::Ptr{IAsyncOperationCompletedHandler}, ::Ptr{GUID}, ::Ptr{Ptr{Cvoid}})::HRESULT),
+        @cfunc(AsyncCompletedHandler_AddRef(::Ptr{IAsyncOperationCompletedHandler})::UInt32),
+        @cfunc(AsyncCompletedHandler_Release(::Ptr{IAsyncOperationCompletedHandler})::UInt32)
     ),
-    @cfunction(AsyncOperationCompletedHandler_Invoke, HRESULT, (Ptr{IAsyncOperationCompletedHandler}, Ptr{IAsyncOperation}, AsyncStatus))
+    @cfunc(AsyncOperationCompletedHandler_Invoke(::Ptr{IAsyncOperationCompletedHandler}, ::Ptr{IAsyncOperation}, ::AsyncStatus)::HRESULT)
 ) |> Ref
 asyncCompletedHandler = IAsyncOperationCompletedHandler(pointer_from_objref(asyncCompletedHandlerImp)) |> Ref
-
 
 function RecievedCallback_Invoke(this::Ptr{IEventHandler}, watcher::Ptr{IBluetoothLEAdvertisementWatcher}, eventArgs::Ptr{Cvoid})::HRESULT
     # try
@@ -246,11 +244,11 @@ end
 
 eventHandlerImp = IEventHandlerVtbl(
     IUnknownVtbl(
-        @cfunction(RecievedCallback_QueryInterface, HRESULT, (Ptr{IEventHandler}, Ptr{GUID}, Ptr{Ptr{Cvoid}})),
-        @cfunction(RecievedCallback_AddRef, UInt32, (Ptr{IEventHandler},)),
-        @cfunction(RecievedCallback_Release, UInt32, (Ptr{IEventHandler},))
+        @cfunc(RecievedCallback_QueryInterface(::Ptr{IEventHandler}, ::Ptr{GUID}, ::Ptr{Ptr{Cvoid}})::HRESULT),
+        @cfunc(RecievedCallback_AddRef(::Ptr{IEventHandler})::UInt32),
+        @cfunc(RecievedCallback_Release(::Ptr{IEventHandler})::UInt32)
     ),
-    @cfunction(RecievedCallback_Invoke, HRESULT, (Ptr{IEventHandler}, Ptr{IBluetoothLEAdvertisementWatcher}, Ptr{Cvoid}))
+    @cfunc(RecievedCallback_Invoke(::Ptr{IEventHandler}, ::Ptr{IBluetoothLEAdvertisementWatcher}, ::Ptr{Cvoid})::HRESULT)
 ) |> Ref
 eventHandler = IEventHandler(pointer_from_objref(eventHandlerImp)) |> Ref
 
