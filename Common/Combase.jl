@@ -430,4 +430,42 @@ function HstringToString(hs::HSTRING)
     return unsafe_wrap(Array, buf, len) |> v -> transcode(String, v)
 end 
 
+"""
+    @cfunc f(arg::ArgType, ...)::ReturnType
+
+Create a C-callable function pointer from a Julia function `f`.
+
+Wraps `Base.@cfunction` with a more readable syntax. Argument names are
+optional and ignored; only the types are used.
+
+# Examples
+```julia
+function my_compare(a::Cint, b::Cint)::Cint
+    return a < b ? -1 : a > b ? 1 : 0
+end
+
+cb = @cfunc my_compare(a::Cint, b::Cint)::Cint
+cb = @cfunc my_compare(::Cint, ::Cint)::Cint  # names are optional
+```
+
+See also: `Base.@cfunction`, `ccall`, `@ccall`
+"""
+macro cfunc(expr)
+    @assert expr.head == :(::) "expected return type annotation, e.g. f(...)::Ret"
+    ret = expr.args[2]
+    call = expr.args[1]
+
+    @assert call.head == :call "expected a call expression"
+    f = call.args[1]
+
+    argtypes = map(call.args[2:end]) do arg
+        @assert arg.head == :(::) "args must be typed, e.g. ::Cint or x::Cint"
+        arg.args[end]
+    end
+
+    at = Expr(:call, GlobalRef(Core, :svec), argtypes...)
+    cfun = Expr(:cfunction, Ptr{Cvoid}, QuoteNode(f), ret, at, QuoteNode(:ccall))
+    return esc(cfun)
+end
+
 nothing

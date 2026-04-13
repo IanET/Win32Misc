@@ -203,13 +203,36 @@ function AsyncOperationCompletedHandler_Invoke(this::Ptr{IAsyncOperationComplete
     return S_OK
 end
 
+# asyncCompletedHandlerImp = IAsyncOperationCompletedHandlerVtbl(
+#     IUnknownVtbl(
+#         @cfunction(AsyncCompletedHandler_QueryInterface, HRESULT, (Ptr{IAsyncOperationCompletedHandler}, Ptr{GUID}, Ptr{Ptr{Cvoid}})),
+#         @cfunction(AsyncCompletedHandler_AddRef, UInt32, (Ptr{IAsyncOperationCompletedHandler},)),
+#         @cfunction(AsyncCompletedHandler_Release, UInt32, (Ptr{IAsyncOperationCompletedHandler},))
+#     ),
+#     @cfunction(AsyncOperationCompletedHandler_Invoke, HRESULT, (Ptr{IAsyncOperationCompletedHandler}, Ptr{IAsyncOperation}, AsyncStatus))
+# ) |> Ref
+
+# asyncCompletedHandlerImp = IAsyncOperationCompletedHandlerVtbl(
+#     IUnknownVtbl(
+#         @cfunc AsyncCompletedHandler_QueryInterface(this::Ptr{IAsyncOperationCompletedHandler}, riid::Ptr{GUID}, ppv::Ptr{Ptr{Cvoid}})::HRESULT,
+#         @cfunc AsyncCompletedHandler_AddRef(this::Ptr{IAsyncOperationCompletedHandler})::UInt32,
+#         @cfunc AsyncCompletedHandler_Release(this::Ptr{IAsyncOperationCompletedHandler})::UInt32
+#     ),
+#     @cfunction(AsyncOperationCompletedHandler_Invoke, HRESULT, (Ptr{IAsyncOperationCompletedHandler}, Ptr{IAsyncOperation}, AsyncStatus))
+# ) |> Ref
+
+pfn_AsyncCompletedHandler_QueryInterface = @cfunc AsyncCompletedHandler_QueryInterface(this::Ptr{IAsyncOperationCompletedHandler}, riid::Ptr{GUID}, ppv::Ptr{Ptr{Cvoid}})::HRESULT
+pfn_AsyncCompletedHandler_AddRef = @cfunc AsyncCompletedHandler_AddRef(this::Ptr{IAsyncOperationCompletedHandler})::UInt32
+pfn_AsyncCompletedHandler_Release = @cfunc AsyncCompletedHandler_Release(this::Ptr{IAsyncOperationCompletedHandler})::UInt32
+pfn_AsyncOperationCompletedHandler_Invoke = @cfunc AsyncOperationCompletedHandler_Invoke(this::Ptr{IAsyncOperationCompletedHandler}, asyncInfo::Ptr{IAsyncOperation}, asyncStatus::AsyncStatus)::HRESULT
+
 asyncCompletedHandlerImp = IAsyncOperationCompletedHandlerVtbl(
     IUnknownVtbl(
-        @cfunction(AsyncCompletedHandler_QueryInterface, HRESULT, (Ptr{IAsyncOperationCompletedHandler}, Ptr{GUID}, Ptr{Ptr{Cvoid}})),
-        @cfunction(AsyncCompletedHandler_AddRef, UInt32, (Ptr{IAsyncOperationCompletedHandler},)),
-        @cfunction(AsyncCompletedHandler_Release, UInt32, (Ptr{IAsyncOperationCompletedHandler},))
+        pfn_AsyncCompletedHandler_QueryInterface,
+        pfn_AsyncCompletedHandler_AddRef,
+        pfn_AsyncCompletedHandler_Release
     ),
-    @cfunction(AsyncOperationCompletedHandler_Invoke, HRESULT, (Ptr{IAsyncOperationCompletedHandler}, Ptr{IAsyncOperation}, AsyncStatus))
+    pfn_AsyncOperationCompletedHandler_Invoke
 ) |> Ref
 asyncCompletedHandler = IAsyncOperationCompletedHandler(pointer_from_objref(asyncCompletedHandlerImp)) |> Ref
 
