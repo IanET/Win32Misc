@@ -14,7 +14,7 @@ internal partial class WidgetProvider : IWidgetProvider
             "body":[
                 {
                     "type":"TextBlock",
-                    "text":"Loading...",
+                    "text":"Ready",
                     "size":"small"
                 }
             ]
@@ -22,8 +22,6 @@ internal partial class WidgetProvider : IWidgetProvider
     """;
 
     private static string? _widgetId;
-    private static string _currentTemplate = HelloTemplate;
-    private static string _currentData = "{}";
     public static readonly ManualResetEvent WidgetDeletedEvent = new(false);
 
     public WidgetProvider()
@@ -55,22 +53,11 @@ internal partial class WidgetProvider : IWidgetProvider
     // Called from the named pipe server — omit template or data to keep the cached value
     public static void PipeUpdate(string? template, string? data)
     {
-        // Console.WriteLine($"PipeUpdate: widgetId={_widgetId ?? "null"} template={(template is null ? "null" : $"{template.Length} chars")} data={data ?? "null"}");
-        // Console.WriteLine($"Template: {(template ?? "null")}");
-        // Console.WriteLine($"Data: {(data ?? "null")}");
-
-        if (template is not null) _currentTemplate = template;
-        if (data is not null) _currentData = data;
-        if (_widgetId is null)
-        {
-            Console.WriteLine("PipeUpdate: no widget ID, skipping.");
-            return;
-        }
+        if (_widgetId is null) return;
         var options = new WidgetUpdateRequestOptions(_widgetId);
         if (template is not null) options.Template = template;
         if (data is not null) options.Data = data;
         WidgetManager.GetDefault().UpdateWidget(options);
-        Console.WriteLine("PipeUpdate: UpdateWidget called.");
     }
 
     private static void SendUpdate()
@@ -78,8 +65,8 @@ internal partial class WidgetProvider : IWidgetProvider
         if (_widgetId is null) return;
         WidgetManager.GetDefault().UpdateWidget(new WidgetUpdateRequestOptions(_widgetId)
         {
-            Template = _currentTemplate,
-            Data = _currentData,
+            Template = HelloTemplate,
+            Data = "{}",
         });
     }
 }

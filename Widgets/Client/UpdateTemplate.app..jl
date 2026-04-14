@@ -9,7 +9,7 @@ const template = """
         "body":[
             {
                 "type":"TextBlock",
-                "text":"Hello World ($nowstr)",
+                "text":"Current Time: $nowstr",
                 "size":"small",
                 "wrap":true
             }
