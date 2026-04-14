@@ -32,7 +32,7 @@ public static class Program
         }
         else
         {
-            WidgetProvider.EmptyWidgetListEvent.WaitOne();
+            WidgetProvider.WidgetDeletedEvent.WaitOne();
         }
 
         ClassObject.Revoke(cookie);

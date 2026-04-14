@@ -7,8 +7,6 @@ namespace HelloWidgetProvider;
 [Guid("f8444433-3aa5-42a4-a496-5c2b36f3b3eb")]
 internal partial class WidgetProvider : IWidgetProvider
 {
-
-    // Adaptive Card template — just shows "Hello World!"
     private const string HelloTemplate = """
         {
             "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
@@ -26,68 +24,42 @@ internal partial class WidgetProvider : IWidgetProvider
         }
         """;
 
-    private static readonly Dictionary<string, bool> _runningWidgets = new();
-    private static readonly ManualResetEvent _emptyEvent = new(false);
+    private static string? _widgetId;
+    public static readonly ManualResetEvent WidgetDeletedEvent = new(false);
 
     public WidgetProvider()
     {
-        // Re-register any widgets that were running before we started (e.g. after a crash/reboot)
-        foreach (var info in WidgetManager.GetDefault().GetWidgetInfos())
-        {
-            _runningWidgets.TryAdd(info.WidgetContext.Id, false);
-        }
+        // Recover widget ID if we were restarted (e.g. after a crash/reboot)
+        _widgetId = WidgetManager.GetDefault().GetWidgetIds().FirstOrDefault();
     }
 
-    public static ManualResetEvent EmptyWidgetListEvent => _emptyEvent;
-
-    // Called when the user pins the widget
     public void CreateWidget(WidgetContext widgetContext)
     {
-        _runningWidgets[widgetContext.Id] = false;
-        SendUpdate(widgetContext.Id);
+        _widgetId = widgetContext.Id;
+        SendUpdate();
     }
 
-    // Called when the user unpins the widget
     public void DeleteWidget(string widgetId, string customState)
     {
-        _runningWidgets.Remove(widgetId);
-        if (_runningWidgets.Count == 0)
-            _emptyEvent.Set();
+        _widgetId = null;
+        WidgetDeletedEvent.Set();
     }
 
-    // Called when the widget host wants fresh content
-    public void Activate(WidgetContext widgetContext)
-    {
-        _runningWidgets[widgetContext.Id] = true;
-        SendUpdate(widgetContext.Id);
-    }
+    public void Activate(WidgetContext _) => SendUpdate();
 
-    // Called when the widget host stops needing updates
-    public void Deactivate(string widgetId)
-    {
-        if (_runningWidgets.ContainsKey(widgetId))
-            _runningWidgets[widgetId] = false;
-    }
+    public void Deactivate(string _) { }
 
-    // Called when the widget is resized
-    public void OnWidgetContextChanged(WidgetContextChangedArgs contextChangedArgs)
-    {
-        SendUpdate(contextChangedArgs.WidgetContext.Id);
-    }
+    public void OnWidgetContextChanged(WidgetContextChangedArgs _) => SendUpdate();
 
-    // Called when the user interacts with a button/action on the widget
-    public void OnActionInvoked(WidgetActionInvokedArgs actionInvokedArgs)
-    {
-        // Hello World has no interactive actions
-    }
+    public void OnActionInvoked(WidgetActionInvokedArgs _) { }
 
-    private static void SendUpdate(string widgetId)
+    private static void SendUpdate()
     {
-        var options = new WidgetUpdateRequestOptions(widgetId)
+        if (_widgetId is null) return;
+        WidgetManager.GetDefault().UpdateWidget(new WidgetUpdateRequestOptions(_widgetId)
         {
             Template = HelloTemplate,
             Data = "{}",
-        };
-        WidgetManager.GetDefault().UpdateWidget(options);
+        });
     }
 }
