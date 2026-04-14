@@ -1,4 +1,4 @@
-using HelloWidgetProvider.Com;
+using TestWidgetProvider.Com;
 using Microsoft.Windows.Widgets.Providers;
 using System.IO.Pipes;
 using System.Runtime.InteropServices;
@@ -6,11 +6,11 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using WinRT;
 
-namespace HelloWidgetProvider;
+namespace TestWidgetProvider;
 
 public static class Program
 {
-    public const string PipeName = "HelloWidgetProvider.d94hev71b6gse";
+    public const string PipeName = "TestWidgetProvider.d94hev71b6gse";
 
     [DllImport("kernel32.dll")]
     static extern IntPtr GetConsoleWindow();
@@ -26,7 +26,7 @@ public static class Program
 
         ComWrappersSupport.InitializeComWrappers();
 
-        Console.WriteLine("Registering Hello World Widget Provider...");
+        Console.WriteLine("Registering Test Widget Provider...");
         ClassObject.Register(typeof(WidgetProvider).GUID, new WidgetProviderFactory<WidgetProvider>(), out uint cookie);
         Console.WriteLine($"Registered. Listening on pipe: {PipeName}");
 

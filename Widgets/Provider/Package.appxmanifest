@@ -8,13 +8,13 @@
   IgnorableNamespaces="uap uap3 rescap">
 
   <Identity
-    Name="HelloWidgetProvider"
-    Publisher="CN=HelloWidgetProvider"
+    Name="TestWidgetProvider"
+    Publisher="CN=TestWidgetProvider"
     Version="1.0.0.0" />
 
   <Properties>
-    <DisplayName>Hello Widget Provider</DisplayName>
-    <PublisherDisplayName>HelloWidgetProvider</PublisherDisplayName>
+    <DisplayName>Test Widget Provider</DisplayName>
+    <PublisherDisplayName>TestWidgetProvider</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
 
@@ -32,8 +32,8 @@
       Executable="$targetnametoken$.exe"
       EntryPoint="$targetentrypoint$">
       <uap:VisualElements
-        DisplayName="Hello Widget Provider"
-        Description="A simple Hello World widget provider"
+        DisplayName="Test Widget Provider"
+        Description="A test widget provider"
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"
         Square44x44Logo="Assets\Square44x44Logo.png">
@@ -45,10 +45,10 @@
         <!-- Register the COM server so the widget host can activate the provider -->
         <com:Extension Category="windows.comServer">
           <com:ComServer>
-            <com:ExeServer Executable="HelloWidgetProvider.exe"
+            <com:ExeServer Executable="TestWidgetProvider.exe"
                            Arguments="-RegisterProcessAsComServer"
-                           DisplayName="Hello Widget Provider">
-              <com:Class Id="f8444433-3aa5-42a4-a496-5c2b36f3b3eb" DisplayName="HelloWidgetProvider" />
+                           DisplayName="Test Widget Provider">
+              <com:Class Id="f8444433-3aa5-42a4-a496-5c2b36f3b3eb" DisplayName="TestWidgetProvider" />
             </com:ExeServer>
           </com:ComServer>
         </com:Extension>
@@ -57,8 +57,8 @@
         <uap3:Extension Category="windows.appExtension">
           <uap3:AppExtension
             Name="com.microsoft.windows.widgets"
-            DisplayName="Hello Widget Provider"
-            Id="HelloWidgetApp"
+            DisplayName="Test Widget Provider"
+            Id="TestWidgetApp"
             PublicFolder="Public">
             <uap3:Properties>
               <WidgetProvider>
@@ -70,9 +70,9 @@
                 </Activation>
                 <Definitions>
                   <Definition
-                    Id="Hello_Widget"
-                    DisplayName="Hello World Widget"
-                    Description="Displays Hello World!">
+                    Id="Test_Widget"
+                    DisplayName="Test Widget"
+                    Description="A test widget">
                     <Capabilities>
                       <Capability><Size Name="small" /></Capability>
                       <Capability><Size Name="medium" /></Capability>
@@ -80,10 +80,10 @@
                     </Capabilities>
                     <ThemeResources>
                       <Icons>
-                        <Icon Path="ProviderAssets\Hello_Icon.png" />
+                        <Icon Path="ProviderAssets\Test_Icon.png" />
                       </Icons>
                       <Screenshots>
-                        <Screenshot Path="ProviderAssets\Hello_Screenshot.png" DisplayAltText="Hello World widget" />
+                        <Screenshot Path="ProviderAssets\Test_Screenshot.png" DisplayAltText="Test widget" />
                       </Screenshots>
                       <DarkMode />
                       <LightMode />

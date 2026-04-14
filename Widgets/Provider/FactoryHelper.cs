@@ -2,7 +2,7 @@ using Microsoft.Windows.Widgets.Providers;
 using System.Runtime.InteropServices;
 using WinRT;
 
-namespace HelloWidgetProvider.Com;
+namespace TestWidgetProvider.Com;
 
 static class Guids
 {

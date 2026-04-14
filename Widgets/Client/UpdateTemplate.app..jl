@@ -1,6 +1,6 @@
 using JSON3, Dates
 
-const PIPE_NAME = "\\\\.\\pipe\\HelloWidgetProvider.d94hev71b6gse"
+const PIPE_NAME = "\\\\.\\pipe\\TestWidgetProvider.d94hev71b6gse"
 const nowstr = Dates.format(Dates.now(), "I:MM:SS p")
 const template = """
     {

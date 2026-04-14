@@ -1,13 +1,13 @@
 using Microsoft.Windows.Widgets.Providers;
 using System.Runtime.InteropServices;
 
-namespace HelloWidgetProvider;
+namespace TestWidgetProvider;
 
 // CLSID must match the ClassId in Package.appxmanifest
 [Guid("f8444433-3aa5-42a4-a496-5c2b36f3b3eb")]
 internal partial class WidgetProvider : IWidgetProvider
 {
-    private const string HelloTemplate = """
+    private const string DefaultTemplate = """
         {
             "type":"AdaptiveCard",
             "version":"1.5",
@@ -65,7 +65,7 @@ internal partial class WidgetProvider : IWidgetProvider
         if (_widgetId is null) return;
         WidgetManager.GetDefault().UpdateWidget(new WidgetUpdateRequestOptions(_widgetId)
         {
-            Template = HelloTemplate,
+            Template = DefaultTemplate,
             Data = "{}",
         });
     }
