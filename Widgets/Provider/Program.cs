@@ -1,12 +1,17 @@
 using HelloWidgetProvider.Com;
 using Microsoft.Windows.Widgets.Providers;
+using System.IO.Pipes;
 using System.Runtime.InteropServices;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using WinRT;
 
 namespace HelloWidgetProvider;
 
 public static class Program
 {
+    public const string PipeName = "HelloWidgetProvider.d94hev71b6gse";
+
     [DllImport("kernel32.dll")]
     static extern IntPtr GetConsoleWindow();
 
@@ -23,7 +28,9 @@ public static class Program
 
         Console.WriteLine("Registering Hello World Widget Provider...");
         ClassObject.Register(typeof(WidgetProvider).GUID, new WidgetProviderFactory<WidgetProvider>(), out uint cookie);
-        Console.WriteLine("Registered.");
+        Console.WriteLine($"Registered. Listening on pipe: {PipeName}");
+
+        StartPipeServer();
 
         if (GetConsoleWindow() != IntPtr.Zero)
         {
@@ -37,4 +44,38 @@ public static class Program
 
         ClassObject.Revoke(cookie);
     }
+
+    static void StartPipeServer()
+    {
+        new Thread(() =>
+        {
+            while (true)
+            {
+                using var pipe = new NamedPipeServerStream(PipeName, PipeDirection.In);
+                pipe.WaitForConnection();
+                using var reader = new StreamReader(pipe);
+                while (reader.ReadLine() is string line)
+                {
+                    try
+                    {
+                        var msg = JsonSerializer.Deserialize<PipeMessage>(line);
+                        if (msg is not null) 
+                        {
+                            Console.WriteLine($"Received pipe message: length={line.Length}");
+                            WidgetProvider.PipeUpdate(msg.Template, msg.Data);
+                        }
+                    }
+                    catch (JsonException ex)
+                    {
+                        Console.WriteLine($"Invalid pipe message: {ex.Message}");
+                    }
+                }
+            }
+        }) { IsBackground = true }.Start();
+    }
 }
+
+record PipeMessage(
+    [property: JsonPropertyName("template")] string? Template,
+    [property: JsonPropertyName("data")]     string? Data
+);

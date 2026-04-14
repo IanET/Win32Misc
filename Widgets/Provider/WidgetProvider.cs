@@ -9,28 +9,28 @@ internal partial class WidgetProvider : IWidgetProvider
 {
     private const string HelloTemplate = """
         {
-            "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-            "type": "AdaptiveCard",
-            "version": "1.5",
-            "body": [
+            "type":"AdaptiveCard",
+            "version":"1.5",
+            "body":[
                 {
-                    "type": "TextBlock",
-                    "text": "Hello World!",
-                    "size": "large",
-                    "weight": "bolder",
-                    "wrap": true
+                    "type":"TextBlock",
+                    "text":"Loading...",
+                    "size":"small"
                 }
             ]
         }
-        """;
+    """;
 
     private static string? _widgetId;
+    private static string _currentTemplate = HelloTemplate;
+    private static string _currentData = "{}";
+    private static readonly WidgetManager _widgetManager = WidgetManager.GetDefault();
     public static readonly ManualResetEvent WidgetDeletedEvent = new(false);
 
     public WidgetProvider()
     {
         // Recover widget ID if we were restarted (e.g. after a crash/reboot)
-        _widgetId = WidgetManager.GetDefault().GetWidgetIds().FirstOrDefault();
+        _widgetId = _widgetManager.GetWidgetIds().FirstOrDefault();
     }
 
     public void CreateWidget(WidgetContext widgetContext)
@@ -53,13 +53,34 @@ internal partial class WidgetProvider : IWidgetProvider
 
     public void OnActionInvoked(WidgetActionInvokedArgs _) { }
 
+    // Called from the named pipe server — omit template or data to keep the cached value
+    public static void PipeUpdate(string? template, string? data)
+    {
+        // Console.WriteLine($"PipeUpdate: widgetId={_widgetId ?? "null"} template={(template is null ? "null" : $"{template.Length} chars")} data={data ?? "null"}");
+        // Console.WriteLine($"Template: {(template ?? "null")}");
+        // Console.WriteLine($"Data: {(data ?? "null")}");
+
+        if (template is not null) _currentTemplate = template;
+        if (data is not null) _currentData = data;
+        if (_widgetId is null)
+        {
+            Console.WriteLine("PipeUpdate: no widget ID, skipping.");
+            return;
+        }
+        var options = new WidgetUpdateRequestOptions(_widgetId);
+        if (template is not null) options.Template = template;
+        if (data is not null) options.Data = data;
+        _widgetManager.UpdateWidget(options);
+        Console.WriteLine("PipeUpdate: UpdateWidget called.");
+    }
+
     private static void SendUpdate()
     {
         if (_widgetId is null) return;
-        WidgetManager.GetDefault().UpdateWidget(new WidgetUpdateRequestOptions(_widgetId)
+        _widgetManager.UpdateWidget(new WidgetUpdateRequestOptions(_widgetId)
         {
-            Template = HelloTemplate,
-            Data = "{}",
+            Template = _currentTemplate,
+            Data = _currentData,
         });
     }
 }
