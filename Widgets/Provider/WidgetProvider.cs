@@ -44,7 +44,7 @@ internal partial class WidgetProvider : IWidgetProvider
         WidgetDeletedEvent.Set();
     }
 
-    public void Activate(WidgetContext _) => SendUpdate();
+    public void Activate(WidgetContext _) { }
 
     public void Deactivate(string _) { }
 
