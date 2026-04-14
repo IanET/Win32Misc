@@ -16,11 +16,9 @@ const template = """
         ]
     }
 """
+const data = "{}"
 
-# Escape the template JSON as a string value inside the outer JSON message
-escaped = replace(template, "\\" => "\\\\", "\"" => "\\\"", "\n" => "")
-msg = """{"template":"$escaped","data":"{}"}"""
-
+msg = JSON3.write((; template, data))
 pipe = open(PIPE_NAME, "w")
 println(pipe, msg)
 flush(pipe)
