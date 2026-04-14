@@ -34,21 +34,23 @@ internal partial class WidgetProvider : IWidgetProvider
     {
         _widgetId = widgetContext.Id;
         SendUpdate();
+        Console.WriteLine($"Widget created with ID: {_widgetId}");
     }
 
     public void DeleteWidget(string widgetId, string customState)
     {
         _widgetId = null;
         WidgetDeletedEvent.Set();
+        Console.WriteLine($"Widget deleted with ID: {widgetId}, customState: {customState}");
     }
 
-    public void Activate(WidgetContext _) { }
+    public void Activate(WidgetContext _) { Console.WriteLine("Widget activated"); }
 
-    public void Deactivate(string _) { }
+    public void Deactivate(string _) { Console.WriteLine("Widget deactivated"); }
 
     public void OnWidgetContextChanged(WidgetContextChangedArgs _) => SendUpdate();
 
-    public void OnActionInvoked(WidgetActionInvokedArgs _) { }
+    public void OnActionInvoked(WidgetActionInvokedArgs _) { Console.WriteLine("Widget action invoked"); }
 
     // Called from the named pipe server — omit template or data to keep the cached value
     public static void PipeUpdate(string? template, string? data)
