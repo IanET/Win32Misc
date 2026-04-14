@@ -1,4 +1,5 @@
 using Microsoft.Windows.Widgets.Providers;
+using System.IO.Pipes;
 using System.Runtime.InteropServices;
 
 namespace TestWidgetProvider;
@@ -50,14 +51,37 @@ internal partial class WidgetProvider : IWidgetProvider
 
     public void OnWidgetContextChanged(WidgetContextChangedArgs _) => SendUpdate();
 
-    public void OnActionInvoked(WidgetActionInvokedArgs _) { Console.WriteLine("Widget action invoked"); }
+    public void OnActionInvoked(WidgetActionInvokedArgs args)
+    {
+        var verb = args.Verb;
+        // Acknowledge immediately so the host dismisses the spinner
+        if (_widgetId is not null)
+            WidgetManager.GetDefault().UpdateWidget(new WidgetUpdateRequestOptions(_widgetId));
+        Task.Run(() =>
+        {
+            try
+            {
+                using var pipe = new NamedPipeClientStream(".", Program.ActionPipeName, PipeDirection.Out);
+                pipe.Connect(1000);
+                using var writer = new StreamWriter(pipe) { AutoFlush = true };
+                writer.WriteLine(verb);
+                Console.WriteLine($"Action sent to client: {verb}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Action pipe: {ex.Message}");
+            }
+        });
+    }
 
     // Called from the named pipe server — omit template or data to keep the cached value
     public static void PipeUpdate(string? template, string? data)
     {
         if (_widgetId is null) return;
         var options = new WidgetUpdateRequestOptions(_widgetId);
+        // if (template is null) Console.WriteLine("Updating widget with cached template");
         if (template is not null) options.Template = template;
+        // if (data is null) Console.WriteLine("Updating widget with cached data");
         if (data is not null) options.Data = data;
         WidgetManager.GetDefault().UpdateWidget(options);
     }
