@@ -24,13 +24,12 @@ internal partial class WidgetProvider : IWidgetProvider
     private static string? _widgetId;
     private static string _currentTemplate = HelloTemplate;
     private static string _currentData = "{}";
-    private static readonly WidgetManager _widgetManager = WidgetManager.GetDefault();
     public static readonly ManualResetEvent WidgetDeletedEvent = new(false);
 
     public WidgetProvider()
     {
         // Recover widget ID if we were restarted (e.g. after a crash/reboot)
-        _widgetId = _widgetManager.GetWidgetIds().FirstOrDefault();
+        _widgetId = WidgetManager.GetDefault().GetWidgetIds().FirstOrDefault();
     }
 
     public void CreateWidget(WidgetContext widgetContext)
@@ -70,14 +69,14 @@ internal partial class WidgetProvider : IWidgetProvider
         var options = new WidgetUpdateRequestOptions(_widgetId);
         if (template is not null) options.Template = template;
         if (data is not null) options.Data = data;
-        _widgetManager.UpdateWidget(options);
+        WidgetManager.GetDefault().UpdateWidget(options);
         Console.WriteLine("PipeUpdate: UpdateWidget called.");
     }
 
     private static void SendUpdate()
     {
         if (_widgetId is null) return;
-        _widgetManager.UpdateWidget(new WidgetUpdateRequestOptions(_widgetId)
+        WidgetManager.GetDefault().UpdateWidget(new WidgetUpdateRequestOptions(_widgetId)
         {
             Template = _currentTemplate,
             Data = _currentData,
