@@ -101,7 +101,9 @@ function expand_item_template(obj, n=5)
         for item in obj
             if is_item_template(item)
                 for _ in 1:n
-                    push!(result, deepcopy(item))
+                    clone = deepcopy(item)
+                    delete!(clone, "id")
+                    push!(result, clone)
                 end
             else
                 push!(result, expand_item_template(item, n))
