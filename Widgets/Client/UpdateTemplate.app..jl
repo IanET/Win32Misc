@@ -27,10 +27,12 @@ const template = """
                 {
                     "type": "Column",
                     "width": "auto",
+                    "style": "emphasis",
                     "verticalContentAlignment": "center",
                     "items": [
                         { "type": "TextBlock", "text": "❮", "horizontalAlignment": "center" }
-                    ]
+                    ],
+                    "selectAction": { "type": "Action.Execute", "verb": "prev" }
                 },
                 {
                     "type": "Column",
@@ -88,10 +90,12 @@ const template = """
                 {
                     "type": "Column",
                     "width": "auto",
+                    "style": "emphasis",
                     "verticalContentAlignment": "center",
                     "items": [
                         { "type": "TextBlock", "text": "❯", "horizontalAlignment": "center" }
-                    ]
+                    ],
+                    "selectAction": { "type": "Action.Execute", "verb": "next" }
                 }
             ]
         }
