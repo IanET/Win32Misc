@@ -1,5 +1,7 @@
 using JSON3, Dates, Sockets, HTTP
 
+include("ATWindows.jl")
+
 const PIPE_NAME        = "\\\\.\\pipe\\TestWidgetProvider.d94hev71b6gse"
 const ACTION_PIPE_NAME = "\\\\.\\pipe\\TestWidgetProvider.actions.d94hev71b6gse"
 const IMAGE_PORT       = 8765
@@ -43,7 +45,7 @@ const template = """
                             "items": [
                                 {
                                     "type": "Container",
-                                    "id": "ITEM_TEMPLATE",
+                                    "\$data": "\${windows}",
                                     "bleed": true,
                                     "showBorder": true,
                                     "style": "emphasis",
@@ -70,7 +72,7 @@ const template = """
                                                     "items": [
                                                         {
                                                             "type": "TextBlock",
-                                                            "text": "\${msg}",
+                                                            "text": "\${title}",
                                                             "wrap": true
                                                         }
                                                     ]
@@ -103,43 +105,9 @@ const template = """
 }
 """
 
-# Convert JSON3 read-only objects to mutable Dict/Vector trees
-to_mutable(x::JSON3.Object) = Dict{String,Any}(String(k) => to_mutable(v) for (k,v) in x)
-to_mutable(x::JSON3.Array)  = Any[to_mutable(v) for v in x]
-to_mutable(x)               = x
-
-is_item_template(x) = x isa Dict && get(x, "type", nothing) == "Container" && get(x, "id", nothing) == "ITEM_TEMPLATE"
-
-# Recursively walk the tree; when an array contains ITEM_TEMPLATE, replace it with n copies
-function expand_item_template(obj, n=5)
-    if obj isa Dict
-        Dict{String,Any}(k => expand_item_template(v, n) for (k,v) in obj)
-    elseif obj isa Vector
-        result = Any[]
-        for item in obj
-            if is_item_template(item)
-                for _ in 1:n
-                    clone = deepcopy(item)
-                    delete!(clone, "id")
-                    push!(result, clone)
-                end
-            else
-                push!(result, expand_item_template(item, n))
-            end
-        end
-        result
-    else
-        obj
-    end
-end
-
-const ITEMS_FOR_SIZE = Dict("Small" => 2, "Medium" => 5, "Large" => 9)
-
-widget_size = "Medium"
-
-function build_template(tmpl::String, size::String=widget_size)
-    n = get(ITEMS_FOR_SIZE, size, 5)
-    JSON3.write(expand_item_template(to_mutable(JSON3.read(tmpl)), n))
+function windows_data()
+    windows = get_alt_tab_windows()
+    JSON3.write((; windows = [(; title = first(t, 32)) for (_, t) in windows]))
 end
 
 function send_update(; tmpl=nothing, data)
@@ -159,18 +127,15 @@ while true
         type = get(evt, :type, nothing)
         if type == "Activate"
             @info "Widget activated — sending template"
-            nowstr = Dates.format(Dates.now(), "I:MM:SS p")
-            send_update(tmpl=build_template(template), data=JSON3.write((; msg = "Current Time: $nowstr")))
+            send_update(tmpl=template, data=windows_data())
         elseif type == "OnWidgetContextChanged"
-            global widget_size = get(evt, :size, widget_size)
-            @info "Widget context changed" widget_size
-            nowstr = Dates.format(Dates.now(), "I:MM:SS p")
-            send_update(tmpl=build_template(template), data=JSON3.write((; msg = "Current Time: $nowstr")))
+            size = get(evt, :size, "")
+            @info "Widget context changed" size
+            send_update(tmpl=template, data=windows_data())
         elseif type == "OnActionInvoked"
             verb = get(evt, :verb, "")
             @info "Action invoked" verb
-            nowstr = Dates.format(Dates.now(), "I:MM:SS p")
-            send_update(data=JSON3.write((; msg = "OnActionInvoked: $verb at $nowstr")))
+            send_update(data=windows_data())
         elseif type == "Deactivate"
             @info "Widget deactivated"
         else

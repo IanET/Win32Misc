@@ -43,6 +43,8 @@ function get_alt_tab_windows()
     copy(_results)
 end
 
-for (hwnd, title) in get_alt_tab_windows()
-    println("$hwnd  $title")
-end
+# if abspath(PROGRAM_FILE) == @__FILE__
+#     for (hwnd, title) in get_alt_tab_windows()
+#         println("$hwnd  $title")
+#     end
+# end
