@@ -15,6 +15,9 @@ const Shlwapi = "shlwapi.dll"
 const MAKEINTRESOURCEW(i) = LPWSTR(i)
 const MAKEINTRESOURCE = MAKEINTRESOURCEW
 
+const TRUE  = BOOL(1)
+const FALSE = BOOL(0)
+
 LOWORD(l) = WORD(DWORD_PTR(l) & 0xffff)
 HIWORD(l) = WORD(DWORD_PTR(l) >> 16 & 0xffff)
 LOBYTE(w) = BYTE(DWORD_PTR(w) & 0xff)
@@ -1114,6 +1117,11 @@ GetEnvironmentVariableW(lpName, lpBuffer, nSize) = @ccall Kernel32.GetEnvironmen
 GetScrollPos(hWnd, nBar) = @ccall User32.GetScrollPos(hWnd::HWND, nBar::Cint)::Cint
 GetScrollInfo(hWnd, nBar, lpsi) = @ccall User32.GetScrollInfo(hWnd::HWND, nBar::Cint, lpsi::Ptr{SCROLLINFO})::BOOL
 GetCurrentThreadId() = @ccall Kernel32.GetCurrentThreadId()::DWORD
+GetForegroundWindow() = @ccall User32.GetForegroundWindow()::HWND
+GetWindowThreadProcessId(hWnd, lpdwProcessId) = @ccall User32.GetWindowThreadProcessId(hWnd::HWND, lpdwProcessId::Ptr{DWORD})::DWORD
+AttachThreadInput(idAttach, idAttachTo, fAttach) = @ccall User32.AttachThreadInput(idAttach::DWORD, idAttachTo::DWORD, fAttach::BOOL)::BOOL
+SetForegroundWindow(hWnd) = @ccall User32.SetForegroundWindow(hWnd::HWND)::BOOL
+BringWindowToTop(hWnd) = @ccall User32.BringWindowToTop(hWnd::HWND)::BOOL
 UpdateWindow(hWnd) = @ccall User32.UpdateWindow(hWnd::HWND)::BOOL
 AdjustWindowRectEx(lpRect, dwStyle, bMenu, dwExStyle) = @ccall User32.AdjustWindowRectEx(lpRect::LPRECT, dwStyle::DWORD, bMenu::BOOL, dwExStyle::DWORD)::BOOL
 CreateBitmap(nWidth, nHeight, nPlanes, nBitCount, lpBits) = @ccall Gdi32.CreateBitmap(nWidth::Cint, nHeight::Cint, nPlanes::UINT, nBitCount::UINT, lpBits::LPVOID)::HBITMAP

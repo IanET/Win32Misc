@@ -2,6 +2,7 @@ using JSON3, Dates, Sockets, HTTP
 
 include("ATWindows.jl")
 
+
 const PIPE_NAME        = "\\\\.\\pipe\\TestWidgetProvider.d94hev71b6gse"
 const ACTION_PIPE_NAME = "\\\\.\\pipe\\TestWidgetProvider.actions.d94hev71b6gse"
 const IMAGE_PORT       = 8765
@@ -90,7 +91,7 @@ const template = """
                                     ],
                                     "selectAction": {
                                         "type": "Action.Execute",
-                                        "verb": "text1_clicked"
+                                        "verb": "activate_\${hwnd}"
                                     }
                                 }
                             ]
@@ -132,7 +133,7 @@ function windows_data()
     slice      = all[start : min(start + n - 1, total)]
     can_prev = page_offset > 0
     can_next = page_offset < total - n
-    JSON3.write((; windows = [(; title = first(t, 32)) for (_, t) in slice], can_prev, can_next))
+    JSON3.write((; windows = [(; title = first(t, 32), hwnd = string(UInt(h))) for (h, t) in slice], can_prev, can_next))
 end
 
 function send_update(; tmpl=nothing, data)
@@ -166,6 +167,15 @@ while true
                 global page_offset = max(0, page_offset - 1)
             elseif verb == "next"
                 global page_offset = min(page_offset + 1, max(0, total - n))
+            elseif startswith(verb, "activate_")
+                hwnd   = W32.HWND(parse(UInt, verb[10:end]))
+                fg_tid = W32.GetWindowThreadProcessId(W32.GetForegroundWindow(), C_NULL)
+                my_tid = W32.GetCurrentThreadId()
+                W32.AttachThreadInput(fg_tid, my_tid, W32.TRUE)
+                W32.SetForegroundWindow(hwnd)
+                W32.BringWindowToTop(hwnd)
+                W32.AttachThreadInput(fg_tid, my_tid, W32.FALSE)
+                @info "Activated window" hwnd
             end
             send_update(data=windows_data())
         elseif type == "Deactivate"
