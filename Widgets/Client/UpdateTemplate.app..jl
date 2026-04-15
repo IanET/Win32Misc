@@ -28,11 +28,11 @@ const template = """
             "columns": [
                 {
                     "type": "Column",
-                    "width": "auto",
+                    "width": "20px",
                     "style": "emphasis",
                     "verticalContentAlignment": "center",
                     "items": [
-                        { "type": "TextBlock", "text": "❮", "horizontalAlignment": "center" }
+                        { "type": "TextBlock", "text": "\${prev_arrow}", "horizontalAlignment": "center" }
                     ],
                     "selectAction": { "type": "Action.Execute", "verb": "prev" }
                 },
@@ -91,11 +91,11 @@ const template = """
                 },
                 {
                     "type": "Column",
-                    "width": "auto",
+                    "width": "20px",
                     "style": "emphasis",
                     "verticalContentAlignment": "center",
                     "items": [
-                        { "type": "TextBlock", "text": "❯", "horizontalAlignment": "center" }
+                        { "type": "TextBlock", "text": "\${next_arrow}", "horizontalAlignment": "center" }
                     ],
                     "selectAction": { "type": "Action.Execute", "verb": "next" }
                 }
@@ -106,12 +106,18 @@ const template = """
 """
 
 const ITEMS_FOR_SIZE = Dict("Small" => 2, "Medium" => 5, "Large" => 9)
-widget_size = "Medium"
+widget_size  = "Medium"
+page_offset  = 0
 
 function windows_data()
-    n = get(ITEMS_FOR_SIZE, widget_size, 5)
-    windows = first(get_alt_tab_windows(), n)
-    JSON3.write((; windows = [(; title = first(t, 32)) for (_, t) in windows]))
+    n          = get(ITEMS_FOR_SIZE, widget_size, 5)
+    all        = get_alt_tab_windows()
+    total      = length(all)
+    start      = clamp(page_offset, 0, max(0, total - n)) + 1
+    slice      = all[start : min(start + n - 1, total)]
+    prev_arrow = page_offset > 0          ? "❮" : " "
+    next_arrow = page_offset < total - n  ? "❯" : " "
+    JSON3.write((; windows = [(; title = first(t, 32)) for (_, t) in slice], prev_arrow, next_arrow))
 end
 
 function send_update(; tmpl=nothing, data)
@@ -139,6 +145,13 @@ while true
         elseif type == "OnActionInvoked"
             verb = get(evt, :verb, "")
             @info "Action invoked" verb
+            n     = get(ITEMS_FOR_SIZE, widget_size, 5)
+            total = length(get_alt_tab_windows())
+            if verb == "prev"
+                global page_offset = max(0, page_offset - 1)
+            elseif verb == "next"
+                global page_offset = min(page_offset + 1, max(0, total - n))
+            end
             send_update(data=windows_data())
         elseif type == "Deactivate"
             @info "Widget deactivated"
