@@ -105,8 +105,12 @@ const template = """
 }
 """
 
+const ITEMS_FOR_SIZE = Dict("Small" => 2, "Medium" => 5, "Large" => 9)
+widget_size = "Medium"
+
 function windows_data()
-    windows = get_alt_tab_windows()
+    n = get(ITEMS_FOR_SIZE, widget_size, 5)
+    windows = first(get_alt_tab_windows(), n)
     JSON3.write((; windows = [(; title = first(t, 32)) for (_, t) in windows]))
 end
 
@@ -129,8 +133,8 @@ while true
             @info "Widget activated — sending template"
             send_update(tmpl=template, data=windows_data())
         elseif type == "OnWidgetContextChanged"
-            size = get(evt, :size, "")
-            @info "Widget context changed" size
+            global widget_size = get(evt, :size, widget_size)
+            @info "Widget context changed" widget_size
             send_update(tmpl=template, data=windows_data())
         elseif type == "OnActionInvoked"
             verb = get(evt, :verb, "")
