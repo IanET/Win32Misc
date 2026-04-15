@@ -3,11 +3,6 @@ using JSON3, Dates, Sockets
 const PIPE_NAME        = "\\\\.\\pipe\\TestWidgetProvider.d94hev71b6gse"
 const ACTION_PIPE_NAME = "\\\\.\\pipe\\TestWidgetProvider.actions.d94hev71b6gse"
 
-# Start action pipe server before sending the template so C# can connect immediately
-server = Sockets.listen(ACTION_PIPE_NAME)
-@info "Listening for actions on: $ACTION_PIPE_NAME"
-
-# Send template update
 const template = """
     {
         "type":"AdaptiveCard",
@@ -58,28 +53,33 @@ const template = """
         ]
     }
 """
-nowstr = Dates.format(Dates.now(), "I:MM:SS p")
-data = JSON3.write((; msg = "Current Time: $nowstr"))
-msg = JSON3.write((; template, data))
-open(PIPE_NAME, "w") do pipe
-    println(pipe, msg)
-end
-@info "Template sent, waiting for actions..."
 
-# Block waiting for button presses
+function send_update(; tmpl=nothing, data)
+    msg = JSON3.write((; template = tmpl, data))
+    open(PIPE_NAME, "w") do pipe
+        println(pipe, msg)
+    end
+end
+
+server = Sockets.listen(ACTION_PIPE_NAME)
+@info "Listening for actions on: $ACTION_PIPE_NAME"
+
 while true
     conn = accept(server)
     @async for line in eachline(conn)
         evt = JSON3.read(line)
-        if get(evt, :type, nothing) == "OnActionInvoked"
+        type = get(evt, :type, nothing)
+        if type == "Activate"
+            @info "Widget activated — sending template"
+            nowstr = Dates.format(Dates.now(), "I:MM:SS p")
+            send_update(tmpl=template, data=JSON3.write((; msg = "Current Time: $nowstr")))
+        elseif type == "OnActionInvoked"
             verb = get(evt, :verb, "")
             @info "Action invoked" verb
             nowstr = Dates.format(Dates.now(), "I:MM:SS p")
-            data = JSON3.write((; msg = "OnActionInvoked: $verb at $nowstr"))
-            msg = JSON3.write((; nothing, data))
-            open(PIPE_NAME, "w") do pipe
-                println(pipe, msg)
-            end
+            send_update(data=JSON3.write((; msg = "OnActionInvoked: $verb at $nowstr")))
+        elseif type == "Deactivate"
+            @info "Widget deactivated"
         else
             @warn "Unknown event" line
         end

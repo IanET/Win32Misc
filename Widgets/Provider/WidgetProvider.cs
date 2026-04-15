@@ -46,9 +46,17 @@ internal partial class WidgetProvider : IWidgetProvider
         Console.WriteLine($"Widget deleted with ID: {widgetId}, customState: {customState}");
     }
 
-    public void Activate(WidgetContext _) { Console.WriteLine("Widget activated"); }
+    public void Activate(WidgetContext _)
+    {
+        Console.WriteLine("Widget activated");
+        SendEvent(new { type = "Activate" });
+    }
 
-    public void Deactivate(string _) { Console.WriteLine("Widget deactivated"); }
+    public void Deactivate(string _)
+    {
+        Console.WriteLine("Widget deactivated");
+        SendEvent(new { type = "Deactivate" });
+    }
 
     public void OnWidgetContextChanged(WidgetContextChangedArgs _) => SendUpdate();
 
@@ -58,6 +66,11 @@ internal partial class WidgetProvider : IWidgetProvider
         // Acknowledge immediately so the host dismisses the spinner
         if (_widgetId is not null)
             WidgetManager.GetDefault().UpdateWidget(new WidgetUpdateRequestOptions(_widgetId));
+        SendEvent(new { type = "OnActionInvoked", verb });
+    }
+
+    private static void SendEvent(object evt)
+    {
         Task.Run(() =>
         {
             try
@@ -65,12 +78,12 @@ internal partial class WidgetProvider : IWidgetProvider
                 using var pipe = new NamedPipeClientStream(".", Program.ActionPipeName, PipeDirection.Out);
                 pipe.Connect(1000);
                 using var writer = new StreamWriter(pipe) { AutoFlush = true };
-                writer.WriteLine(JsonSerializer.Serialize(new { type = "OnActionInvoked", verb }));
-                Console.WriteLine($"Action sent to client: {verb}");
+                writer.WriteLine(JsonSerializer.Serialize(evt));
+                Console.WriteLine($"Event sent: {JsonSerializer.Serialize(evt)}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Action pipe: {ex.Message}");
+                Console.WriteLine($"Event pipe: {ex.Message}");
             }
         });
     }
