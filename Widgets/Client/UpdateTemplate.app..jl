@@ -34,6 +34,66 @@ const template = """
                 }
             },
             {
+                "type":"ColumnSet",
+                "verticalContentAlignment":"center",
+                "columns":[
+                    {
+                        "type":"Column",
+                        "verticalContentAlignment":"center",
+                        "width":"auto",
+                        "items":[
+                            {
+                                "type":"Image",
+                                "url":"http://localhost:$IMAGE_PORT/LockScreenLogo.scale-200.png",
+                                "size":"small"
+                            }                          
+                        ]
+                    },
+                    {
+                        "type":"Column",
+                        "verticalContentAlignment":"center",
+                        "width":"stretch",
+                        "items":[
+                            {
+                                "type":"TextBlock",
+                                "text":"Line one",
+                                "wrap":true
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "type":"ColumnSet",
+                "verticalContentAlignment":"center",
+                "columns":[
+                    {
+                        "type":"Column",
+                        "verticalContentAlignment":"center",
+                        "width":"auto",
+                        "items":[
+                            {
+                                "type":"Image",
+                                "url":"http://localhost:$IMAGE_PORT/LockScreenLogo.scale-200.png",
+                                "size":"small"
+                            }                          
+                        ]
+                    },
+                    {
+                        "type":"Column",
+                        "verticalContentAlignment":"center",
+                        "width":"stretch",
+                        "items":[
+                            {
+                                "type":"TextBlock",
+                                "text":"Line two",
+                                "wrap":true
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
                 "type":"Container",
                 "height":"stretch",
                 "items":[]
