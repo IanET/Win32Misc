@@ -24,7 +24,14 @@ const template = """
         {
             "type": "ColumnSet",
             "columns": [
-                { "type": "Column", "width": "0px" },
+                {
+                    "type": "Column",
+                    "width": "auto",
+                    "verticalContentAlignment": "center",
+                    "items": [
+                        { "type": "TextBlock", "text": "❮", "horizontalAlignment": "center" }
+                    ]
+                },
                 {
                     "type": "Column",
                     "width": "stretch",
@@ -78,7 +85,14 @@ const template = """
                         }
                     ]
                 },
-                { "type": "Column", "width": "0px" }
+                {
+                    "type": "Column",
+                    "width": "auto",
+                    "verticalContentAlignment": "center",
+                    "items": [
+                        { "type": "TextBlock", "text": "❯", "horizontalAlignment": "center" }
+                    ]
+                }
             ]
         }
     ]
