@@ -27,7 +27,7 @@ const template = """
                 {
                     "type": "Column",
                     "width": "auto",
-                    "verticalContentAlignment": "top",
+                    "verticalContentAlignment": "center",
                     "items": [
                         { "type": "TextBlock", "text": "❮", "horizontalAlignment": "center" }
                     ]
@@ -88,7 +88,7 @@ const template = """
                 {
                     "type": "Column",
                     "width": "auto",
-                    "verticalContentAlignment": "top",
+                    "verticalContentAlignment": "center",
                     "items": [
                         { "type": "TextBlock", "text": "❯", "horizontalAlignment": "center" }
                     ]
@@ -129,7 +129,12 @@ function expand_item_template(obj, n=5)
     end
 end
 
-function build_template(tmpl::String, n=5)
+const ITEMS_FOR_SIZE = Dict("Small" => 2, "Medium" => 5, "Large" => 9)
+
+widget_size = "Medium"
+
+function build_template(tmpl::String, size::String=widget_size)
+    n = get(ITEMS_FOR_SIZE, size, 5)
     JSON3.write(expand_item_template(to_mutable(JSON3.read(tmpl)), n))
 end
 
@@ -153,8 +158,8 @@ while true
             nowstr = Dates.format(Dates.now(), "I:MM:SS p")
             send_update(tmpl=build_template(template), data=JSON3.write((; msg = "Current Time: $nowstr")))
         elseif type == "OnWidgetContextChanged"
-            size = get(evt, :size, "")
-            @info "Widget context changed" size
+            global widget_size = get(evt, :size, widget_size)
+            @info "Widget context changed" widget_size
             nowstr = Dates.format(Dates.now(), "I:MM:SS p")
             send_update(tmpl=build_template(template), data=JSON3.write((; msg = "Current Time: $nowstr")))
         elseif type == "OnActionInvoked"
