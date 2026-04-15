@@ -1118,6 +1118,7 @@ GetScrollPos(hWnd, nBar) = @ccall User32.GetScrollPos(hWnd::HWND, nBar::Cint)::C
 GetScrollInfo(hWnd, nBar, lpsi) = @ccall User32.GetScrollInfo(hWnd::HWND, nBar::Cint, lpsi::Ptr{SCROLLINFO})::BOOL
 GetCurrentThreadId() = @ccall Kernel32.GetCurrentThreadId()::DWORD
 GetForegroundWindow() = @ccall User32.GetForegroundWindow()::HWND
+IsIconic(hWnd) = @ccall User32.IsIconic(hWnd::HWND)::BOOL
 GetWindowThreadProcessId(hWnd, lpdwProcessId) = @ccall User32.GetWindowThreadProcessId(hWnd::HWND, lpdwProcessId::Ptr{DWORD})::DWORD
 AttachThreadInput(idAttach, idAttachTo, fAttach) = @ccall User32.AttachThreadInput(idAttach::DWORD, idAttachTo::DWORD, fAttach::BOOL)::BOOL
 SetForegroundWindow(hWnd) = @ccall User32.SetForegroundWindow(hWnd::HWND)::BOOL

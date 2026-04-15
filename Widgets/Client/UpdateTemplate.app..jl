@@ -169,6 +169,7 @@ while true
                 global page_offset = min(page_offset + 1, max(0, total - n))
             elseif startswith(verb, "activate_")
                 hwnd   = W32.HWND(parse(UInt, verb[10:end]))
+                W32.IsIconic(hwnd) != 0 && W32.ShowWindow(hwnd, W32.SW_RESTORE)
                 fg_tid = W32.GetWindowThreadProcessId(W32.GetForegroundWindow(), C_NULL)
                 my_tid = W32.GetCurrentThreadId()
                 W32.AttachThreadInput(fg_tid, my_tid, W32.TRUE)
