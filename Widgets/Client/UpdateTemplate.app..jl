@@ -152,6 +152,11 @@ while true
             @info "Widget activated — sending template"
             nowstr = Dates.format(Dates.now(), "I:MM:SS p")
             send_update(tmpl=build_template(template), data=JSON3.write((; msg = "Current Time: $nowstr")))
+        elseif type == "OnWidgetContextChanged"
+            size = get(evt, :size, "")
+            @info "Widget context changed" size
+            nowstr = Dates.format(Dates.now(), "I:MM:SS p")
+            send_update(tmpl=build_template(template), data=JSON3.write((; msg = "Current Time: $nowstr")))
         elseif type == "OnActionInvoked"
             verb = get(evt, :verb, "")
             @info "Action invoked" verb

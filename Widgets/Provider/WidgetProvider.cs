@@ -58,7 +58,11 @@ internal partial class WidgetProvider : IWidgetProvider
         SendEvent(new { type = "Deactivate" });
     }
 
-    public void OnWidgetContextChanged(WidgetContextChangedArgs _) => SendUpdate();
+    public void OnWidgetContextChanged(WidgetContextChangedArgs args)
+    {
+        SendUpdate();
+        SendEvent(new { type = "OnWidgetContextChanged", size = args.WidgetContext.Size.ToString() });
+    }
 
     public void OnActionInvoked(WidgetActionInvokedArgs args)
     {
