@@ -18,6 +18,21 @@ const template = """
                 "text":"\${msg}",
                 "size":"small",
                 "wrap":true
+            },
+            {
+                "type":"TextBlock",
+                "text":"Testing",
+                "size":"small",
+                "wrap":true
+            },
+            {
+                "type":"Image",
+                "url":"https://www.wikipedia.org/portal/wikipedia.org/assets/img/Wikipedia-logo-v2@1.5x.png",
+                "size":"small",
+                "selectAction":{
+                    "type":"Action.Execute",
+                    "verb":"image_clicked"
+                }
             }
         ],
         "actions":[
