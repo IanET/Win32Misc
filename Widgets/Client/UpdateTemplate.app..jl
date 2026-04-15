@@ -22,86 +22,104 @@ const template = """
             "type": "Container"
         },
         {
-            "type": "Container",
-            "bleed": true,
-            "showBorder": true,
-            "style": "emphasis",
-            "items": [
+            "type": "ColumnSet",
+            "columns": [
+                { "type": "Column", "width": "0px" },
                 {
-                    "type": "ColumnSet",
-                    "verticalContentAlignment": "center",
-                    "columns": [
+                    "type": "Column",
+                    "width": "stretch",
+                    "items": [
                         {
-                            "type": "Column",
-                            "width": "auto",
+                            "type": "Container",
                             "items": [
                                 {
-                                    "type": "Image",
-                                    "url": "http://localhost:$IMAGE_PORT/LockScreenLogo.scale-200.png",
-                                    "size": "small"
-                                }
-                            ]
-                        },
-                        {
-                            "type": "Column",
-                            "width": "stretch",
-                            "verticalContentAlignment": "center",
-                            "items": [
+                                    "type": "Container",
+                                    "bleed": true,
+                                    "showBorder": true,
+                                    "style": "emphasis",
+                                    "items": [
+                                        {
+                                            "type": "ColumnSet",
+                                            "verticalContentAlignment": "center",
+                                            "columns": [
+                                                {
+                                                    "type": "Column",
+                                                    "width": "auto",
+                                                    "items": [
+                                                        {
+                                                            "type": "Image",
+                                                            "url": "http://localhost:$IMAGE_PORT/LockScreenLogo.scale-200.png",
+                                                            "size": "small"
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    "type": "Column",
+                                                    "width": "stretch",
+                                                    "verticalContentAlignment": "center",
+                                                    "items": [
+                                                        {
+                                                            "type": "TextBlock",
+                                                            "text": "\${msg}",
+                                                            "wrap": true
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ],
+                                    "selectAction": {
+                                        "type": "Action.Execute",
+                                        "verb": "text1_clicked"
+                                    }
+                                },
                                 {
-                                    "type": "TextBlock",
-                                    "text": "\${msg}",
-                                    "wrap": true
+                                    "type": "Container",
+                                    "bleed": true,
+                                    "showBorder": true,
+                                    "style": "emphasis",
+                                    "items": [
+                                        {
+                                            "type": "ColumnSet",
+                                            "verticalContentAlignment": "center",
+                                            "columns": [
+                                                {
+                                                    "type": "Column",
+                                                    "width": "auto",
+                                                    "items": [
+                                                        {
+                                                            "type": "Image",
+                                                            "url": "http://localhost:$IMAGE_PORT/LockScreenLogo.scale-200.png",
+                                                            "size": "small"
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    "type": "Column",
+                                                    "width": "stretch",
+                                                    "verticalContentAlignment": "center",
+                                                    "items": [
+                                                        {
+                                                            "type": "TextBlock",
+                                                            "text": "\${msg}",
+                                                            "wrap": true
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ],
+                                    "selectAction": {
+                                        "type": "Action.Execute",
+                                        "verb": "text1_clicked"
+                                    }
                                 }
                             ]
                         }
                     ]
-                }
-            ],
-            "selectAction": {
-                "type": "Action.Execute",
-                "verb": "text1_clicked"
-            }
-        },
-        {
-            "type": "Container",
-            "bleed": true,
-            "showBorder": true,
-            "style": "emphasis",
-            "items": [
-                {
-                    "type": "ColumnSet",
-                    "verticalContentAlignment": "center",
-                    "columns": [
-                        {
-                            "type": "Column",
-                            "width": "auto",
-                            "items": [
-                                {
-                                    "type": "Image",
-                                    "url": "http://localhost:$IMAGE_PORT/LockScreenLogo.scale-200.png",
-                                    "size": "small"
-                                }
-                            ]
-                        },
-                        {
-                            "type": "Column",
-                            "width": "stretch",
-                            "verticalContentAlignment": "center",
-                            "items": [
-                                {
-                                    "type": "TextBlock",
-                                    "text": "\${msg}",
-                                    "wrap": true
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ],
-            "selectAction": {
-                "type": "Action.Execute",
-                "verb": "text1_clicked"
-            }
+                },
+                { "type": "Column", "width": "0px" }
+            ]
         }
     ]
 }
