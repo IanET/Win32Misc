@@ -38,13 +38,22 @@ const template = """
                 "type":"Container",
                 "height":"stretch",
                 "items":[]
-            }
-        ],
-        "actions":[
+            },
             {
-                "type":"Action.Execute",
-                "title":"Refresh",
-                "verb":"refresh"
+                "type":"ActionSet",
+                "separator": true,
+                "actions":[
+                    {
+                        "type":"Action.Execute",
+                        "title":"Button 1",
+                        "verb":"button1_clicked"
+                    },
+                    {
+                        "type":"Action.Execute",
+                        "title":"Button 2",
+                        "verb":"button2_clicked"
+                    }
+                ]
             }
         ]
     }
