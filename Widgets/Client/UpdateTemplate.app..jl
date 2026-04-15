@@ -14,121 +14,30 @@ end
 @info "Image server running on http://localhost:$IMAGE_PORT/"
 
 const template = """
-    {
-        "type":"AdaptiveCard",
-        "version":"1.5",
-        "body":[
-            {
-                "type":"TextBlock",
-                "text":"\${msg}",
-                "size":"small",
-                "wrap":true
-            },
-            {
-                "type":"Image",
-                "url":"http://localhost:$IMAGE_PORT/LockScreenLogo.scale-200.png",
-                "size":"small",
-                "selectAction":{
-                    "type":"Action.Execute",
-                    "verb":"image_clicked"
+{
+    "type": "AdaptiveCard",
+    "version": "1.6",
+    "body": [
+        {
+            "type": "Container",
+            "items": [
+                {
+                    "type": "TextBlock",
+                    "text": "New TextBlock",
+                    "wrap": true
                 }
-            },
-            {
-                "type":"ColumnSet",
-                "verticalContentAlignment":"center",
-                "columns":[
-                    {
-                        "type":"Column",
-                        "verticalContentAlignment":"center",
-                        "width":"auto",
-                        "items":[
-                            {
-                                "type":"Image",
-                                "url":"http://localhost:$IMAGE_PORT/LockScreenLogo.scale-200.png",
-                                "size":"small"
-                            }                          
-                        ]
-                    },
-                    {
-                        "type":"Column",
-                        "verticalContentAlignment":"center",
-                        "width":"stretch",
-                        "items":[
-                            {
-                                "type":"Container",
-                                "style":"emphasis",
-                                "bleed":true,
-                                "selectionAction":{
-                                    "type":"Action.Execute",
-                                    "verb":"container_clicked",
-                                    "title":"Container Action"
-                                },
-                                "items":[
-                                    {
-                                        "type":"TextBlock",
-                                        "text":"Line one",
-                                        "wrap":true
-                                    }
-                                ]
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                "type":"ColumnSet",
-                "verticalContentAlignment":"center",
-                "columns":[
-                    {
-                        "type":"Column",
-                        "verticalContentAlignment":"center",
-                        "width":"auto",
-                        "items":[
-                            {
-                                "type":"Image",
-                                "url":"http://localhost:$IMAGE_PORT/LockScreenLogo.scale-200.png",
-                                "size":"small"
-                            }                          
-                        ]
-                    },
-                    {
-                        "type":"Column",
-                        "verticalContentAlignment":"center",
-                        "width":"stretch",
-                        "items":[
-                            {
-                                "type":"TextBlock",
-                                "text":"Line two",
-                                "wrap":true
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                "type":"Container",
-                "height":"stretch",
-                "items":[]
-            },
-            {
-                "type":"ActionSet",
-                "separator": true,
-                "actions":[
-                    {
-                        "type":"Action.Execute",
-                        "title":"Button 1",
-                        "verb":"button1_clicked"
-                    },
-                    {
-                        "type":"Action.Execute",
-                        "title":"Button 2",
-                        "verb":"button2_clicked"
-                    }
-                ]
+            ],
+            "bleed": true,
+            "showBorder": true,
+            "style": "emphasis",
+            "selectAction": {
+                "type": "Action.Execute",
+                "verb": "text1_clicked"
             }
-        ]
-    }
-"""
+        }
+    ]
+}
+    """
 
 function send_update(; tmpl=nothing, data)
     msg = JSON3.write((; template = tmpl, data))
