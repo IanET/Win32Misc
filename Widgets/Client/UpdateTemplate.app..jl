@@ -16,20 +16,88 @@ end
 const template = """
 {
     "type": "AdaptiveCard",
-    "version": "1.6",
+    "version": "1.5",
     "body": [
         {
+            "type": "Container"
+        },
+        {
             "type": "Container",
-            "items": [
-                {
-                    "type": "TextBlock",
-                    "text": "New TextBlock",
-                    "wrap": true
-                }
-            ],
             "bleed": true,
             "showBorder": true,
             "style": "emphasis",
+            "items": [
+                {
+                    "type": "ColumnSet",
+                    "verticalContentAlignment": "center",
+                    "columns": [
+                        {
+                            "type": "Column",
+                            "width": "auto",
+                            "items": [
+                                {
+                                    "type": "Image",
+                                    "url": "http://localhost:$IMAGE_PORT/LockScreenLogo.scale-200.png",
+                                    "size": "small"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Column",
+                            "width": "stretch",
+                            "verticalContentAlignment": "center",
+                            "items": [
+                                {
+                                    "type": "TextBlock",
+                                    "text": "\${msg}",
+                                    "wrap": true
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "selectAction": {
+                "type": "Action.Execute",
+                "verb": "text1_clicked"
+            }
+        },
+        {
+            "type": "Container",
+            "bleed": true,
+            "showBorder": true,
+            "style": "emphasis",
+            "items": [
+                {
+                    "type": "ColumnSet",
+                    "verticalContentAlignment": "center",
+                    "columns": [
+                        {
+                            "type": "Column",
+                            "width": "auto",
+                            "items": [
+                                {
+                                    "type": "Image",
+                                    "url": "http://localhost:$IMAGE_PORT/LockScreenLogo.scale-200.png",
+                                    "size": "small"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Column",
+                            "width": "stretch",
+                            "verticalContentAlignment": "center",
+                            "items": [
+                                {
+                                    "type": "TextBlock",
+                                    "text": "\${msg}",
+                                    "wrap": true
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
             "selectAction": {
                 "type": "Action.Execute",
                 "verb": "text1_clicked"
@@ -37,7 +105,7 @@ const template = """
         }
     ]
 }
-    """
+"""
 
 function send_update(; tmpl=nothing, data)
     msg = JSON3.write((; template = tmpl, data))
