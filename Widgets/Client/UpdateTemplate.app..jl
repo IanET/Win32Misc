@@ -136,6 +136,18 @@ function windows_data()
     JSON3.write((; windows = [(; title = first(t, 32), hwnd = string(UInt(h))) for (h, t) in slice], can_prev, can_next))
 end
 
+function activate_window(verb)
+    hwnd   = W32.HWND(parse(UInt, verb[10:end]))
+    W32.IsIconic(hwnd) != 0 && W32.ShowWindow(hwnd, W32.SW_RESTORE)
+    fg_tid = W32.GetWindowThreadProcessId(W32.GetForegroundWindow(), C_NULL)
+    my_tid = W32.GetCurrentThreadId()
+    W32.AttachThreadInput(fg_tid, my_tid, W32.TRUE)
+    W32.SetForegroundWindow(hwnd)
+    W32.BringWindowToTop(hwnd)
+    W32.AttachThreadInput(fg_tid, my_tid, W32.FALSE)
+    @info "Activated window" hwnd
+end
+
 function send_update(; tmpl=nothing, data)
     msg = JSON3.write((; template = tmpl, data))
     open(PIPE_NAME, "w") do pipe
@@ -168,15 +180,7 @@ while true
             elseif verb == "next"
                 global page_offset = min(page_offset + 1, max(0, total - n))
             elseif startswith(verb, "activate_")
-                hwnd   = W32.HWND(parse(UInt, verb[10:end]))
-                W32.IsIconic(hwnd) != 0 && W32.ShowWindow(hwnd, W32.SW_RESTORE)
-                fg_tid = W32.GetWindowThreadProcessId(W32.GetForegroundWindow(), C_NULL)
-                my_tid = W32.GetCurrentThreadId()
-                W32.AttachThreadInput(fg_tid, my_tid, W32.TRUE)
-                W32.SetForegroundWindow(hwnd)
-                W32.BringWindowToTop(hwnd)
-                W32.AttachThreadInput(fg_tid, my_tid, W32.FALSE)
-                @info "Activated window" hwnd
+                activate_window(verb)
             end
             send_update(data=windows_data())
         elseif type == "Deactivate"
