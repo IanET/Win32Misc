@@ -1,7 +1,17 @@
-using JSON3, Dates, Sockets
+using JSON3, Dates, Sockets, HTTP
 
 const PIPE_NAME        = "\\\\.\\pipe\\TestWidgetProvider.d94hev71b6gse"
 const ACTION_PIPE_NAME = "\\\\.\\pipe\\TestWidgetProvider.actions.d94hev71b6gse"
+const IMAGE_PORT       = 8765
+const IMAGE_DIR        = "C:\\src\\ianet-github\\Win32Misc\\Widgets\\Provider\\Assets"
+
+# Serve files from IMAGE_DIR at http://localhost:IMAGE_PORT/<filename>
+HTTP.serve!(IMAGE_PORT; verbose=false) do req
+    filename = lstrip(req.target, '/')
+    path = joinpath(IMAGE_DIR, filename)
+    isfile(path) ? HTTP.Response(200, read(path)) : HTTP.Response(404, "Not found")
+end
+@info "Image server running on http://localhost:$IMAGE_PORT/"
 
 const template = """
     {
@@ -15,14 +25,8 @@ const template = """
                 "wrap":true
             },
             {
-                "type":"TextBlock",
-                "text":"Testing",
-                "size":"small",
-                "wrap":true
-            },
-            {
                 "type":"Image",
-                "url":"https://www.wikipedia.org/portal/wikipedia.org/assets/img/Wikipedia-logo-v2@1.5x.png",
+                "url":"http://localhost:$IMAGE_PORT/LockScreenLogo.scale-200.png",
                 "size":"small",
                 "selectAction":{
                     "type":"Action.Execute",
