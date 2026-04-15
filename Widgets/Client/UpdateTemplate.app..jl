@@ -33,6 +33,11 @@ const template = """
                     "type":"Action.Execute",
                     "verb":"image_clicked"
                 }
+            },
+            {
+                "type":"Container",
+                "height":"stretch",
+                "items":[]
             }
         ],
         "actions":[
