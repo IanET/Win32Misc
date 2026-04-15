@@ -27,7 +27,7 @@ const template = """
                 {
                     "type": "Column",
                     "width": "auto",
-                    "verticalContentAlignment": "center",
+                    "verticalContentAlignment": "top",
                     "items": [
                         { "type": "TextBlock", "text": "❮", "horizontalAlignment": "center" }
                     ]
@@ -88,7 +88,7 @@ const template = """
                 {
                     "type": "Column",
                     "width": "auto",
-                    "verticalContentAlignment": "center",
+                    "verticalContentAlignment": "top",
                     "items": [
                         { "type": "TextBlock", "text": "❯", "horizontalAlignment": "center" }
                     ]
