@@ -31,10 +31,17 @@ const template = """
                     "width": "20px",
                     "style": "emphasis",
                     "verticalContentAlignment": "center",
+                    "\$when": "\${can_prev}",
                     "items": [
-                        { "type": "TextBlock", "text": "\${prev_arrow}", "horizontalAlignment": "center" }
+                        { "type": "TextBlock", "text": "❮", "horizontalAlignment": "center" }
                     ],
                     "selectAction": { "type": "Action.Execute", "verb": "prev" }
+                },
+                {
+                    "type": "Column",
+                    "width": "20px",
+                    "style": "emphasis",
+                    "\$when": "\${!can_prev}"
                 },
                 {
                     "type": "Column",
@@ -73,6 +80,7 @@ const template = """
                                                         {
                                                             "type": "TextBlock",
                                                             "text": "\${title}",
+                                                            "size": "small",
                                                             "wrap": true
                                                         }
                                                     ]
@@ -93,9 +101,16 @@ const template = """
                     "type": "Column",
                     "width": "20px",
                     "style": "emphasis",
+                    "\$when": "\${!can_next}"
+                },
+                {
+                    "type": "Column",
+                    "width": "20px",
+                    "style": "emphasis",
                     "verticalContentAlignment": "center",
+                    "\$when": "\${can_next}",
                     "items": [
-                        { "type": "TextBlock", "text": "\${next_arrow}", "horizontalAlignment": "center" }
+                        { "type": "TextBlock", "text": "❯", "horizontalAlignment": "center" }
                     ],
                     "selectAction": { "type": "Action.Execute", "verb": "next" }
                 }
@@ -115,9 +130,9 @@ function windows_data()
     total      = length(all)
     start      = clamp(page_offset, 0, max(0, total - n)) + 1
     slice      = all[start : min(start + n - 1, total)]
-    prev_arrow = page_offset > 0          ? "❮" : " "
-    next_arrow = page_offset < total - n  ? "❯" : " "
-    JSON3.write((; windows = [(; title = first(t, 32)) for (_, t) in slice], prev_arrow, next_arrow))
+    can_prev = page_offset > 0
+    can_next = page_offset < total - n
+    JSON3.write((; windows = [(; title = first(t, 32)) for (_, t) in slice], can_prev, can_next))
 end
 
 function send_update(; tmpl=nothing, data)
