@@ -55,9 +55,21 @@ const template = """
                         "width":"stretch",
                         "items":[
                             {
-                                "type":"TextBlock",
-                                "text":"Line one",
-                                "wrap":true
+                                "type":"Container",
+                                "style":"emphasis",
+                                "bleed":true,
+                                "selectionAction":{
+                                    "type":"Action.Execute",
+                                    "verb":"container_clicked",
+                                    "title":"Container Action"
+                                },
+                                "items":[
+                                    {
+                                        "type":"TextBlock",
+                                        "text":"Line one",
+                                        "wrap":true
+                                    }
+                                ]
                             }
                         ]
                     }
