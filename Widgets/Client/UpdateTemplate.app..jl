@@ -70,12 +70,18 @@ end
 while true
     conn = accept(server)
     @async for line in eachline(conn)
-        @info "Action: $line"
-        nowstr = Dates.format(Dates.now(), "I:MM:SS p")
-        data = JSON3.write((; msg = "Pressed: $nowstr"))
-        msg = JSON3.write((; nothing, data))
-        open(PIPE_NAME, "w") do pipe
-            println(pipe, msg)
+        evt = JSON3.read(line)
+        if get(evt, :type, nothing) == "OnActionInvoked"
+            verb = get(evt, :verb, "")
+            @info "Action invoked" verb
+            nowstr = Dates.format(Dates.now(), "I:MM:SS p")
+            data = JSON3.write((; msg = "OnActionInvoked: $verb at $nowstr"))
+            msg = JSON3.write((; nothing, data))
+            open(PIPE_NAME, "w") do pipe
+                println(pipe, msg)
+            end
+        else
+            @warn "Unknown event" line
         end
     end
 end

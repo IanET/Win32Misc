@@ -1,6 +1,7 @@
 using Microsoft.Windows.Widgets.Providers;
 using System.IO.Pipes;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 
 namespace TestWidgetProvider;
 
@@ -64,7 +65,7 @@ internal partial class WidgetProvider : IWidgetProvider
                 using var pipe = new NamedPipeClientStream(".", Program.ActionPipeName, PipeDirection.Out);
                 pipe.Connect(1000);
                 using var writer = new StreamWriter(pipe) { AutoFlush = true };
-                writer.WriteLine(verb);
+                writer.WriteLine(JsonSerializer.Serialize(new { type = "OnActionInvoked", verb }));
                 Console.WriteLine($"Action sent to client: {verb}");
             }
             catch (Exception ex)
