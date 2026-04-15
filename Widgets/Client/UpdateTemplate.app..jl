@@ -34,47 +34,7 @@ const template = """
                             "items": [
                                 {
                                     "type": "Container",
-                                    "bleed": true,
-                                    "showBorder": true,
-                                    "style": "emphasis",
-                                    "items": [
-                                        {
-                                            "type": "ColumnSet",
-                                            "verticalContentAlignment": "center",
-                                            "columns": [
-                                                {
-                                                    "type": "Column",
-                                                    "width": "auto",
-                                                    "items": [
-                                                        {
-                                                            "type": "Image",
-                                                            "url": "http://localhost:$IMAGE_PORT/LockScreenLogo.scale-200.png",
-                                                            "size": "small"
-                                                        }
-                                                    ]
-                                                },
-                                                {
-                                                    "type": "Column",
-                                                    "width": "stretch",
-                                                    "verticalContentAlignment": "center",
-                                                    "items": [
-                                                        {
-                                                            "type": "TextBlock",
-                                                            "text": "\${msg}",
-                                                            "wrap": true
-                                                        }
-                                                    ]
-                                                }
-                                            ]
-                                        }
-                                    ],
-                                    "selectAction": {
-                                        "type": "Action.Execute",
-                                        "verb": "text1_clicked"
-                                    }
-                                },
-                                {
-                                    "type": "Container",
+                                    "id": "ITEM_TEMPLATE",
                                     "bleed": true,
                                     "showBorder": true,
                                     "style": "emphasis",

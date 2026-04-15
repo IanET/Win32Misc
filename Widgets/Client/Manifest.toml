@@ -2,7 +2,7 @@
 
 julia_version = "1.12.6"
 manifest_format = "2.0"
-project_hash = "7700ba5668d60a1a469aaf48b584bdc8a0e0f056"
+project_hash = "835a5b2a50adc5546d215ec3952c7d72330d91d0"
 
 [[deps.Artifacts]]
 uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
@@ -16,6 +16,11 @@ version = "1.11.0"
 git-tree-sha1 = "0691e34b3bb8be9307330f88d1a3c3f25466c24d"
 uuid = "d1d4a3ce-64b1-5f1a-9ba4-7e7e69966f35"
 version = "0.1.9"
+
+[[deps.CEnum]]
+git-tree-sha1 = "389ad5c84de1ae7cf0e28e381131c98ea87d54fc"
+uuid = "fa961155-64e5-5f13-b03f-caf6b980ea82"
+version = "0.5.0"
 
 [[deps.CodecZlib]]
 deps = ["TranscodingStreams", "Zlib_jll"]
@@ -73,6 +78,14 @@ version = "1.14.3"
 deps = ["StyledStrings"]
 uuid = "ac6e5ff7-fb65-4e79-a425-ec3bc9c03011"
 version = "1.12.0"
+
+[[deps.LibBaseTsd]]
+deps = ["CEnum"]
+git-tree-sha1 = "acddc5c7505da6305a13af40d2841366e99651a4"
+repo-rev = "main"
+repo-url = "https://github.com/IanET/LibBaseTsd.git"
+uuid = "7e56034f-6cb4-40fe-a0fc-e21059f7fef0"
+version = "0.1.1"
 
 [[deps.Libdl]]
 uuid = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
