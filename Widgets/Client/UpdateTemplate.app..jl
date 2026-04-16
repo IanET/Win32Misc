@@ -1,4 +1,4 @@
-using JSON3, Dates, Sockets, HTTP
+using JSON3, Dates, Sockets, HTTP, LibBaseTsd
 
 include("ATWindows.jl")
 
@@ -137,9 +137,7 @@ function windows_data()
 end
 
 function dismiss_widget_host()
-    cls  = transcode(UInt16, "Chrome_WidgetWin_1\0")
-    ttl  = transcode(UInt16, "Widgets\0")
-    hwnd = GC.@preserve cls ttl W32.FindWindowW(pointer(cls), pointer(ttl))
+    hwnd = W32.FindWindowW(L"Chrome_WidgetWin_1", L"Widgets")
     if hwnd != C_NULL
         W32.PostMessageW(hwnd, W32.WM_KEYDOWN, W32.VK_ESCAPE, W32.LPARAM(0))
         W32.PostMessageW(hwnd, W32.WM_KEYUP,   W32.VK_ESCAPE, W32.LPARAM(0))
