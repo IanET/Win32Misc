@@ -214,6 +214,13 @@ const WM_NCRBUTTONDBLCLK = 0x00a6
 const WM_NCMBUTTONDOWN = 0x00a7
 const WM_NCMBUTTONUP = 0x00a8
 const WM_NCMBUTTONDBLCLK = 0x00a9
+const WM_KEYDOWN    = 0x0100
+const WM_KEYUP      = 0x0101
+const WM_SYSKEYDOWN = 0x0104
+const WM_SYSKEYUP   = 0x0105
+
+const VK_ESCAPE = UINT(0x1B)
+
 const WM_CUT = 0x0300
 const WM_COPY = 0x0301
 const WM_PASTE = 0x0302
@@ -1118,6 +1125,7 @@ GetScrollPos(hWnd, nBar) = @ccall User32.GetScrollPos(hWnd::HWND, nBar::Cint)::C
 GetScrollInfo(hWnd, nBar, lpsi) = @ccall User32.GetScrollInfo(hWnd::HWND, nBar::Cint, lpsi::Ptr{SCROLLINFO})::BOOL
 GetCurrentThreadId() = @ccall Kernel32.GetCurrentThreadId()::DWORD
 GetForegroundWindow() = @ccall User32.GetForegroundWindow()::HWND
+GetShellWindow() = @ccall User32.GetShellWindow()::HWND
 IsIconic(hWnd) = @ccall User32.IsIconic(hWnd::HWND)::BOOL
 GetWindowThreadProcessId(hWnd, lpdwProcessId) = @ccall User32.GetWindowThreadProcessId(hWnd::HWND, lpdwProcessId::Ptr{DWORD})::DWORD
 AttachThreadInput(idAttach, idAttachTo, fAttach) = @ccall User32.AttachThreadInput(idAttach::DWORD, idAttachTo::DWORD, fAttach::BOOL)::BOOL

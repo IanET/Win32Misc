@@ -136,12 +136,25 @@ function windows_data()
     JSON3.write((; windows = [(; title = first(t, 32), hwnd = string(UInt(h))) for (h, t) in slice], can_prev, can_next))
 end
 
+function dismiss_widget_host()
+    cls  = transcode(UInt16, "Chrome_WidgetWin_1\0")
+    ttl  = transcode(UInt16, "Widgets\0")
+    hwnd = GC.@preserve cls ttl W32.FindWindowW(pointer(cls), pointer(ttl))
+    if hwnd != C_NULL
+        W32.PostMessageW(hwnd, W32.WM_KEYDOWN, W32.VK_ESCAPE, W32.LPARAM(0))
+        W32.PostMessageW(hwnd, W32.WM_KEYUP,   W32.VK_ESCAPE, W32.LPARAM(0))
+        @info "Sent Escape to widget host" hwnd
+    end
+end
+
 function activate_window(verb)
+    dismiss_widget_host()
     hwnd   = W32.HWND(parse(UInt, verb[10:end]))
     W32.IsIconic(hwnd) != 0 && W32.ShowWindow(hwnd, W32.SW_RESTORE)
     fg_tid = W32.GetWindowThreadProcessId(W32.GetForegroundWindow(), C_NULL)
     my_tid = W32.GetCurrentThreadId()
     W32.AttachThreadInput(fg_tid, my_tid, W32.TRUE)
+    # W32.SetForegroundWindow(W32.GetShellWindow())
     W32.SetForegroundWindow(hwnd)
     W32.BringWindowToTop(hwnd)
     W32.AttachThreadInput(fg_tid, my_tid, W32.FALSE)
