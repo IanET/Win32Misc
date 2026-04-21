@@ -25,12 +25,43 @@ function is_alt_tab_window(hwnd)
     return true
 end
 
-const _results = Tuple{W32.HWND, String}[]
+function _get_process_exe_path(hwnd)
+    pid = Ref{W32.DWORD}(0)
+    W32.GetWindowThreadProcessId(hwnd, pid)
+    pid[] == 0 && return nothing
+    hproc = W32.OpenProcess(W32.PROCESS_QUERY_LIMITED_INFORMATION, W32.FALSE, pid[])
+    hproc == C_NULL && return nothing
+    buf = zeros(UInt16, 260)
+    size = Ref{W32.DWORD}(260)
+    ok = W32.QueryFullProcessImageNameW(hproc, 0, buf, size)
+    W32.CloseHandle(hproc)
+    ok == 0 && return nothing
+    # null-terminate for use as LPCWSTR
+    vcat(buf[1:size[]], UInt16(0))
+end
+
+function get_window_icon(hwnd)
+    # Try WM_GETICON: large, then small2 (DPI-scaled small), then small
+    for itype in (1, 2, 0)
+        r = W32.SendMessageW(hwnd, W32.WM_GETICON, itype, 0)
+        r != 0 && return W32.HICON(r)
+    end
+    # Fall back to class icon
+    r = W32.GetClassLongPtrW(hwnd, W32.GCLP_HICON)
+    r != 0 && return W32.HICON(r)
+    # Fall back to first icon in process executable
+    path = _get_process_exe_path(hwnd)
+    path === nothing && return nothing
+    hicon = W32.ExtractIconW(W32.GetModuleHandleW(C_NULL), path, 0)
+    (hicon == C_NULL || Int(hicon) == 1) ? nothing : hicon
+end
+
+const _results = Tuple{W32.HWND, String, Union{W32.HICON, Nothing}}[]
 
 function _enum_callback(hwnd::Ptr{Cvoid}, _::Int)::Cint
     if is_alt_tab_window(hwnd)
         title = get_title(hwnd)
-        title !== nothing && push!(_results, (hwnd, title))
+        title !== nothing && push!(_results, (hwnd, title, get_window_icon(hwnd)))
     end
     Cint(1)
 end
@@ -44,7 +75,7 @@ function get_alt_tab_windows()
 end
 
 # if abspath(PROGRAM_FILE) == @__FILE__
-#     for (hwnd, title) in get_alt_tab_windows()
-#         println("$hwnd  $title")
+#     for (hwnd, title, hicon) in get_alt_tab_windows()
+#         println("$hwnd  $title  icon=$(hicon)")
 #     end
 # end

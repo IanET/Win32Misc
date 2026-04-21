@@ -746,9 +746,11 @@ const PROCESS_SET_INFORMATION = 0x0200
 const PROCESS_QUERY_INFORMATION = 0x0400
 const PROCESS_SUSPEND_RESUME = 0x0800
 const PROCESS_ALL_ACCESS = 0x1F0FFF
+const PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
 
 const GWL_STYLE = -16
 const GWL_EXSTYLE = -20
+const GCLP_HICON = Cint(-14)
 
 const HSHELL_WINDOWCREATED = 1
 const HSHELL_WINDOWDESTROYED = 2
@@ -855,6 +857,7 @@ const HALFTONE = 0x00000004
 
 const BI_RGB = 0
 const DIB_RGB_COLORS = 0
+const DI_NORMAL = UINT(0x0003)
 
 const SIZE_RESTORED = 0
 const SIZE_MINIMIZED = 1
@@ -1146,6 +1149,9 @@ EnableWindow(hWnd, bEnable) = @ccall User32.EnableWindow(hWnd::HWND, bEnable::BO
 GetDC(hWnd) = @ccall User32.GetDC(hWnd::HWND)::HDC
 ReleaseDC(hWnd, hDC) = @ccall User32.ReleaseDC(hWnd::HWND, hDC::HDC)::Cint
 CreateDIBSection(hdc, pbmi, iUsage, ppvBits, hSection, dwOffset) = @ccall Gdi32.CreateDIBSection(hdc::HDC, pbmi::Ptr{BITMAPINFO}, iUsage::DWORD, ppvBits::Ptr{LPVOID}, hSection::HANDLE, dwOffset::DWORD)::HBITMAP
+QueryFullProcessImageNameW(hProcess, dwFlags, lpExeName, lpdwSize) = @ccall Kernel32.QueryFullProcessImageNameW(hProcess::HANDLE, dwFlags::DWORD, lpExeName::LPWSTR, lpdwSize::Ptr{DWORD})::BOOL
+GetClassLongPtrW(hWnd, nIndex) = @ccall User32.GetClassLongPtrW(hWnd::HWND, nIndex::Cint)::ULONG_PTR
+DrawIconEx(hDC, xLeft, yTop, hIcon, cxWidth, cyHeight, istepIfAniCur, hbrFlickerFreeDraw, diFlags) = @ccall User32.DrawIconEx(hDC::HDC, xLeft::Cint, yTop::Cint, hIcon::HICON, cxWidth::Cint, cyHeight::Cint, istepIfAniCur::UINT, hbrFlickerFreeDraw::HBRUSH, diFlags::UINT)::BOOL
 
 # Helpers
 RECT() = RECT(0, 0, 0, 0)

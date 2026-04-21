@@ -1,6 +1,7 @@
 using JSON3, Dates, Sockets, HTTP, LibBaseTsd
 
 include("ATWindows.jl")
+include("IconToPng.jl")
 
 
 const PIPE_NAME        = "\\\\.\\pipe\\TestWidgetProvider.d94hev71b6gse"
@@ -8,9 +9,31 @@ const ACTION_PIPE_NAME = "\\\\.\\pipe\\TestWidgetProvider.actions.d94hev71b6gse"
 const IMAGE_PORT       = 8765
 const IMAGE_DIR        = "C:\\src\\ianet-github\\Win32Misc\\Widgets\\Provider\\Assets"
 
-# Serve files from IMAGE_DIR at http://localhost:IMAGE_PORT/<filename>
+current_windows = Tuple{W32.HWND, String, Union{W32.HICON, Nothing}}[]
+const icon_cache = Dict{UInt, Vector{UInt8}}()
+
+function _cached_icon_png(hwnd_int::UInt)
+    haskey(icon_cache, hwnd_int) && return icon_cache[hwnd_int]
+    idx = findfirst(w -> UInt(w[1]) == hwnd_int, current_windows)
+    idx === nothing && return nothing
+    hicon = current_windows[idx][3]
+    hicon === nothing && return nothing
+    png = icon_to_png_bytes(hicon)
+    png === nothing && return nothing
+    icon_cache[hwnd_int] = png
+end
+
 HTTP.serve!(IMAGE_PORT; verbose=false) do req
-    filename = lstrip(req.target, '/')
+    target = req.target
+    if startswith(target, "/icon/")
+        hwnd_int = tryparse(UInt, target[7:end])
+        if hwnd_int !== nothing
+            png = _cached_icon_png(hwnd_int)
+            png !== nothing && return HTTP.Response(200, ["Content-Type" => "image/png"], png)
+        end
+        return HTTP.Response(404, "Not found")
+    end
+    filename = lstrip(target, '/')
     path = joinpath(IMAGE_DIR, filename)
     isfile(path) ? HTTP.Response(200, read(path)) : HTTP.Response(404, "Not found")
 end
@@ -68,7 +91,7 @@ const template = """
                                                     "items": [
                                                         {
                                                             "type": "Image",
-                                                            "url": "http://localhost:$IMAGE_PORT/LockScreenLogo.scale-200.png",
+                                                            "url": "http://localhost:$IMAGE_PORT/icon/\${hwnd}",
                                                             "size": "small"
                                                         }
                                                     ]
@@ -126,14 +149,15 @@ widget_size  = "Medium"
 page_offset  = 0
 
 function windows_data()
-    n          = get(ITEMS_FOR_SIZE, widget_size, 5)
-    all        = get_alt_tab_windows()
-    total      = length(all)
-    start      = clamp(page_offset, 0, max(0, total - n)) + 1
-    slice      = all[start : min(start + n - 1, total)]
+    n = get(ITEMS_FOR_SIZE, widget_size, 5)
+    global current_windows = get_alt_tab_windows()
+    empty!(icon_cache)
+    total    = length(current_windows)
+    start    = clamp(page_offset, 0, max(0, total - n)) + 1
+    slice    = current_windows[start : min(start + n - 1, total)]
     can_prev = page_offset > 0
     can_next = page_offset < total - n
-    JSON3.write((; windows = [(; title = first(t, 32), hwnd = string(UInt(h))) for (h, t) in slice], can_prev, can_next))
+    JSON3.write((; windows = [(; title = first(t, 32), hwnd = string(UInt(h))) for (h, t, _) in slice], can_prev, can_next))
 end
 
 function dismiss_widget_host()
