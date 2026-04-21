@@ -4,8 +4,8 @@ include("ATWindows.jl")
 include("IconToPng.jl")
 
 
-const PIPE_NAME        = "\\\\.\\pipe\\TestWidgetProvider.d94hev71b6gse"
-const ACTION_PIPE_NAME = "\\\\.\\pipe\\TestWidgetProvider.actions.d94hev71b6gse"
+const PIPE_NAME        = "\\\\.\\pipe\\TestWidgetProvider.d94hev71b6gse_to_provider"
+const ACTION_PIPE_NAME = "\\\\.\\pipe\\TestWidgetProvider.d94hev71b6gse_from_provider"
 const IMAGE_PORT       = 8765
 const IMAGE_DIR        = "C:\\src\\ianet-github\\Win32Misc\\Widgets\\Provider\\Assets"
 

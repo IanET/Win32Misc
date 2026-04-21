@@ -10,8 +10,8 @@ namespace TestWidgetProvider;
 
 public static class Program
 {
-    public const string PipeName       = "TestWidgetProvider.d94hev71b6gse";
-    public const string ActionPipeName = "TestWidgetProvider.actions.d94hev71b6gse";
+    public const string PipeName       = "TestWidgetProvider.d94hev71b6gse_to_provider";
+    public const string ActionPipeName = "TestWidgetProvider.d94hev71b6gse_from_provider";
 
     [DllImport("kernel32.dll")]
     static extern IntPtr GetConsoleWindow();

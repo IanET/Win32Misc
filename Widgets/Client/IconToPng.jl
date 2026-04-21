@@ -36,7 +36,7 @@ function icon_to_png_bytes(hicon::W32.HICON, sz::Int = 32)::Union{Vector{UInt8},
     W32.DeleteObject(hbm)
     W32.DeleteDC(hdc)
 
-    img = permutedims(reshape(reinterpret(RGBA{N0f8}, rgba), sz, sz))
+    img = rgba |> x -> reinterpret(RGBA{N0f8}, x) |> x -> reshape(x, sz, sz) |> permutedims
     buf = IOBuffer()
     PNGFiles.save(buf, img)
     take!(buf)
