@@ -211,9 +211,9 @@ while true
             n     = get(ITEMS_FOR_SIZE, widget_size, 5)
             total = length(get_alt_tab_windows())
             if verb == "prev"
-                global page_offset = max(0, page_offset - 1)
+                global page_offset = max(0, page_offset - n)
             elseif verb == "next"
-                global page_offset = min(page_offset + 1, max(0, total - n))
+                global page_offset = min(page_offset + n, max(0, total - n))
             elseif startswith(verb, "activate_")
                 activate_window(verb)
             end
