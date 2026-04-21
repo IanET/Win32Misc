@@ -8,13 +8,13 @@
   IgnorableNamespaces="uap uap3 rescap">
 
   <Identity
-    Name="TestWidgetProvider"
-    Publisher="CN=TestWidgetProvider"
+    Name="TaskSwitcherWidgetProvider"
+    Publisher="CN=TaskSwitcherWidgetProvider"
     Version="1.0.0.0" />
 
   <Properties>
-    <DisplayName>Test Widget Provider</DisplayName>
-    <PublisherDisplayName>TestWidgetProvider</PublisherDisplayName>
+    <DisplayName>Task Switcher</DisplayName>
+    <PublisherDisplayName>TaskSwitcherWidgetProvider</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
 
@@ -32,8 +32,8 @@
       Executable="$targetnametoken$.exe"
       EntryPoint="$targetentrypoint$">
       <uap:VisualElements
-        DisplayName="Test Widget Provider"
-        Description="A test widget provider"
+        DisplayName="Task Switcher"
+        Description="Switch between open windows"
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"
         Square44x44Logo="Assets\Square44x44Logo.png">
@@ -47,8 +47,8 @@
           <com:ComServer>
             <com:ExeServer Executable="TestWidgetProvider.exe"
                            Arguments="-RegisterProcessAsComServer"
-                           DisplayName="Test Widget Provider">
-              <com:Class Id="f8444433-3aa5-42a4-a496-5c2b36f3b3eb" DisplayName="TestWidgetProvider" />
+                           DisplayName="Task Switcher">
+              <com:Class Id="f8444433-3aa5-42a4-a496-5c2b36f3b3eb" DisplayName="TaskSwitcherWidgetProvider" />
             </com:ExeServer>
           </com:ComServer>
         </com:Extension>
@@ -57,8 +57,8 @@
         <uap3:Extension Category="windows.appExtension">
           <uap3:AppExtension
             Name="com.microsoft.windows.widgets"
-            DisplayName="Test Widget Provider"
-            Id="TestWidgetApp"
+            DisplayName="Task Switcher"
+            Id="TaskSwitcherApp"
             PublicFolder="Public">
             <uap3:Properties>
               <WidgetProvider>
@@ -70,9 +70,9 @@
                 </Activation>
                 <Definitions>
                   <Definition
-                    Id="Test_Widget"
-                    DisplayName="Test Widget"
-                    Description="A test widget">
+                    Id="TaskSwitcher_Widget"
+                    DisplayName="Task Switcher"
+                    Description="Switch between open windows">
                     <Capabilities>
                       <Capability><Size Name="small" /></Capability>
                       <Capability><Size Name="medium" /></Capability>
@@ -80,10 +80,10 @@
                     </Capabilities>
                     <ThemeResources>
                       <Icons>
-                        <Icon Path="ProviderAssets\Test_Icon.png" />
+                        <Icon Path="ProviderAssets\TaskSwitcher_Icon.png" />
                       </Icons>
                       <Screenshots>
-                        <Screenshot Path="ProviderAssets\Test_Screenshot.png" DisplayAltText="Test widget" />
+                        <Screenshot Path="ProviderAssets\TaskSwitcher_Screenshot.png" DisplayAltText="Task Switcher widget" />
                       </Screenshots>
                       <DarkMode />
                       <LightMode />
