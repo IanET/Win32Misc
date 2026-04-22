@@ -44,16 +44,17 @@ public static class Program
 
         StartPipeServer();
 
-        if (GetConsoleWindow() != IntPtr.Zero)
-        {
-            Console.WriteLine("Press ENTER to exit.");
-            Console.ReadLine();
-        }
-        else
-        {
-            WidgetProvider.WidgetDeletedEvent.WaitOne();
-        }
+        // if (GetConsoleWindow() != IntPtr.Zero)
+        // {
+        //     Console.WriteLine("Press ENTER to exit.");
+        //     Console.ReadLine();
+        // }
+        // else
+        // {
+        //     WidgetProvider.WidgetDeletedEvent.WaitOne();
+        // }
 
+        WidgetProvider.WidgetDeletedEvent.WaitOne();
         ClassObject.Revoke(cookie);
     }
 
