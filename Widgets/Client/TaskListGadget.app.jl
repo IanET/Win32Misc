@@ -12,6 +12,7 @@ const IMAGE_DIR        = joinpath(dirname(@__FILE__), "..", "Assets")
 current_windows = Tuple{W32.HWND, String, Union{W32.HICON, Nothing}}[]
 const icon_cache = Dict{UInt, Vector{UInt8}}()
 
+
 function _cached_icon_png(hwnd_int::UInt)
     haskey(icon_cache, hwnd_int) && return icon_cache[hwnd_int]
     idx = findfirst(w -> UInt(w[1]) == hwnd_int, current_windows)
@@ -78,8 +79,10 @@ const template = """
                                     "type": "Container",
                                     "\$data": "\${windows}",
                                     "bleed": true,
-                                    "showBorder": true,
-                                    "style": "emphasis",
+                                    "backgroundImage": {
+                                        "url": "http://localhost:$IMAGE_PORT/item-bg.png",
+                                        "fillMode": "cover"
+                                    },
                                     "items": [
                                         {
                                             "type": "ColumnSet",
