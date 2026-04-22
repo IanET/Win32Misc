@@ -7,7 +7,7 @@ include("IconToPng.jl")
 const PIPE_NAME        = "\\\\.\\pipe\\TestWidgetProvider.d94hev71b6gse_to_provider"
 const ACTION_PIPE_NAME = "\\\\.\\pipe\\TestWidgetProvider.d94hev71b6gse_from_provider"
 const IMAGE_PORT       = 8765
-const IMAGE_DIR        = "C:\\src\\ianet-github\\Win32Misc\\Widgets\\Provider\\Assets"
+const IMAGE_DIR        = joinpath(dirname(@__FILE__), "..", "Assets")
 
 current_windows = Tuple{W32.HWND, String, Union{W32.HICON, Nothing}}[]
 const icon_cache = Dict{UInt, Vector{UInt8}}()

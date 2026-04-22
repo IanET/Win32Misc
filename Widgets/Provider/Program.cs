@@ -14,8 +14,7 @@ public static class Program
     public const string PipeName       = "TestWidgetProvider.d94hev71b6gse_to_provider";
     public const string ActionPipeName = "TestWidgetProvider.d94hev71b6gse_from_provider";
 
-    // Julia client location — relative to provider exe for packaged use
-    static readonly string ClientDir   = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, @"..\..\..\..\..\Client"));
+    static readonly string ClientDir   = Path.Combine(AppContext.BaseDirectory, "Client");
     static readonly string JuliaScript = Path.Combine(ClientDir, "TaskListGadget.app.jl");
 
     [DllImport("kernel32.dll")]

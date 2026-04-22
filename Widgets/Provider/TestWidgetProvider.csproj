@@ -18,6 +18,12 @@
     <Content Include="ProviderAssets\**\*.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="..\..\Common\Win32.jl"            Link="Client\Win32.jl">           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <Content Include="..\Client\ATWindows.jl"          Link="Client\ATWindows.jl">          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <Content Include="..\Client\IconToPng.jl"          Link="Client\IconToPng.jl">          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <Content Include="..\Client\TaskListGadget.app.jl" Link="Client\TaskListGadget.app.jl"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <Content Include="..\Client\Project.toml"          Link="Client\Project.toml">          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <Content Include="..\Client\Manifest.toml"         Link="Client\Manifest.toml">         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
   </ItemGroup>
 
   <ItemGroup>

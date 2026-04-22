@@ -1,4 +1,4 @@
-include("..\\..\\Common\\Win32.jl")
+include(joinpath(@__DIR__, "Win32.jl"))
 using .W32
 
 const GW_OWNER = W32.UINT(4)
