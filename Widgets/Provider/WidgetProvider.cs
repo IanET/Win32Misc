@@ -46,10 +46,11 @@ internal partial class WidgetProvider : IWidgetProvider
         Console.WriteLine($"Widget deleted with ID: {widgetId}, customState: {customState}");
     }
 
-    public void Activate(WidgetContext _)
+    public void Activate(WidgetContext widgetContext)
     {
-        Console.WriteLine("Widget activated");
-        SendEvent(new { type = "Activate" });
+        var size = widgetContext.Size.ToString();
+        Console.WriteLine($"Widget activated, size={size} (raw={widgetContext.Size})");
+        SendEvent(new { type = "Activate", size });
     }
 
     public void Deactivate(string _)

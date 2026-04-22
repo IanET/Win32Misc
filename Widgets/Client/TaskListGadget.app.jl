@@ -199,7 +199,8 @@ while true
         evt = JSON3.read(line)
         type = get(evt, :type, nothing)
         if type == "Activate"
-            @info "Widget activated — sending template"
+            global widget_size = get(evt, :size, widget_size)
+            @info "Widget activated — sending template" widget_size
             send_update(tmpl=template, data=windows_data())
         elseif type == "OnWidgetContextChanged"
             global widget_size = get(evt, :size, widget_size)
