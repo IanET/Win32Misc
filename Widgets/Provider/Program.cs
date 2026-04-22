@@ -1,5 +1,6 @@
 using TestWidgetProvider.Com;
 using Microsoft.Windows.Widgets.Providers;
+using System.Diagnostics;
 using System.IO.Pipes;
 using System.Runtime.InteropServices;
 using System.Text.Json;
@@ -13,6 +14,10 @@ public static class Program
     public const string PipeName       = "TestWidgetProvider.d94hev71b6gse_to_provider";
     public const string ActionPipeName = "TestWidgetProvider.d94hev71b6gse_from_provider";
 
+    // Julia client location — relative to provider exe for packaged use
+    static readonly string ClientDir   = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, @"..\..\..\..\..\Client"));
+    static readonly string JuliaScript = Path.Combine(ClientDir, "TaskListGadget.app.jl");
+
     [DllImport("kernel32.dll")]
     static extern IntPtr GetConsoleWindow();
 
@@ -25,9 +30,16 @@ public static class Program
             return;
         }
 
+        var julia = LaunchJuliaClient();
+
+        AppDomain.CurrentDomain.ProcessExit += (_, _) =>
+        {
+            try { julia?.Kill(entireProcessTree: true); } catch { }
+        };
+
         ComWrappersSupport.InitializeComWrappers();
 
-        Console.WriteLine("Registering Test Widget Provider...");
+        Console.WriteLine("Registering Task Switcher Widget Provider...");
         ClassObject.Register(typeof(WidgetProvider).GUID, new WidgetProviderFactory<WidgetProvider>(), out uint cookie);
         Console.WriteLine($"Registered. Listening on pipe: {PipeName}");
 
@@ -46,6 +58,28 @@ public static class Program
         ClassObject.Revoke(cookie);
     }
 
+    static Process? LaunchJuliaClient()
+    {
+        try
+        {
+            var julia = Process.Start(new ProcessStartInfo
+            {
+                FileName        = "julia.exe",
+                Arguments       = $"--project=\"{ClientDir}\" \"{JuliaScript}\"",
+                UseShellExecute = false,
+            });
+            Console.WriteLine(julia is not null
+                ? $"Julia client started (PID {julia.Id})"
+                : "Julia client process was null");
+            return julia;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to launch Julia client: {ex.Message}");
+            return null;
+        }
+    }
+
     static void StartPipeServer()
     {
         new Thread(() =>
@@ -60,7 +94,7 @@ public static class Program
                     try
                     {
                         var msg = JsonSerializer.Deserialize<PipeMessage>(line);
-                        if (msg is not null) 
+                        if (msg is not null)
                         {
                             Console.WriteLine($"Received pipe message: length={line.Length}");
                             WidgetProvider.PipeUpdate(msg.Template, msg.Data);
