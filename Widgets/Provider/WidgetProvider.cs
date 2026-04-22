@@ -16,7 +16,7 @@ internal partial class WidgetProvider : IWidgetProvider
             "body":[
                 {
                     "type":"TextBlock",
-                    "text":"Ready",
+                    "text":"",
                     "size":"small"
                 }
             ]
