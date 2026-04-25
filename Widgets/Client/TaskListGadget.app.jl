@@ -201,7 +201,7 @@ while true
     @async for line in eachline(conn)
         evt = JSON3.read(line)
         type = get(evt, :type, nothing)
-        if type == "Activate"
+        if type == "Activate" || type == "Create"
             global widget_size = get(evt, :size, widget_size)
             @info "Widget activated — sending template" widget_size
             send_update(tmpl=template, data=windows_data())

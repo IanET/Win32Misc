@@ -16,7 +16,7 @@ internal partial class WidgetProvider : IWidgetProvider
             "body":[
                 {
                     "type":"TextBlock",
-                    "text":"",
+                    "text":"...",
                     "size":"small"
                 }
             ]
@@ -24,26 +24,50 @@ internal partial class WidgetProvider : IWidgetProvider
     """;
 
     private static string? _widgetId;
-    public static readonly ManualResetEvent WidgetDeletedEvent = new(false);
+    private static string? _cachedTemplate;
+    private static string? _cachedData;
 
     public WidgetProvider()
     {
-        // Recover widget ID if we were restarted (e.g. after a crash/reboot)
-        _widgetId = WidgetManager.GetDefault().GetWidgetIds().FirstOrDefault();
+        RecoverRunningWidgets();
+    }
+
+    private static void RecoverRunningWidgets()
+    {
+        var infos = WidgetManager.GetDefault().GetWidgetInfos();
+        foreach (var info in infos)
+        {
+            var id = info.WidgetContext.Id;
+            if (_widgetId is null)
+            {
+                _widgetId       = id;
+                _cachedTemplate = string.IsNullOrEmpty(info.Template) ? null : info.Template;
+                _cachedData     = string.IsNullOrEmpty(info.Data)     ? null : info.Data;
+                Console.WriteLine($"Recovered widget ID: {_widgetId}");
+            }
+            else
+            {
+                // More widgets than we expect — delete extras
+                WidgetManager.GetDefault().DeleteWidget(id);
+                Console.WriteLine($"Deleted unexpected widget ID: {id}");
+            }
+        }
     }
 
     public void CreateWidget(WidgetContext widgetContext)
     {
         _widgetId = widgetContext.Id;
         SendUpdate();
-        Console.WriteLine($"Widget created with ID: {_widgetId}");
+        var size = widgetContext.Size.ToString();
+        Console.WriteLine($"Widget created with ID: {_widgetId}, size={size}");
+        SendEvent(new { type = "Create", size });
     }
 
     public void DeleteWidget(string widgetId, string customState)
     {
         _widgetId = null;
-        WidgetDeletedEvent.Set();
         Console.WriteLine($"Widget deleted with ID: {widgetId}, customState: {customState}");
+        WidgetManager.GetDefault().DeleteWidget(widgetId);
     }
 
     public void Activate(WidgetContext widgetContext)
@@ -68,7 +92,6 @@ internal partial class WidgetProvider : IWidgetProvider
     public void OnActionInvoked(WidgetActionInvokedArgs args)
     {
         var verb = args.Verb;
-        // Acknowledge immediately so the host dismisses the spinner
         if (_widgetId is not null)
             WidgetManager.GetDefault().UpdateWidget(new WidgetUpdateRequestOptions(_widgetId));
         SendEvent(new { type = "OnActionInvoked", verb });
@@ -93,15 +116,16 @@ internal partial class WidgetProvider : IWidgetProvider
         });
     }
 
-    // Called from the named pipe server — omit template or data to keep the cached value
+    // Called from the named pipe server — caches and applies template/data from Julia
     public static void PipeUpdate(string? template, string? data)
     {
         if (_widgetId is null) return;
+        if (template is not null) _cachedTemplate = template;
+        if (data    is not null) _cachedData      = data;
         var options = new WidgetUpdateRequestOptions(_widgetId);
-        // if (template is null) Console.WriteLine("Updating widget with cached template");
         if (template is not null) options.Template = template;
-        // if (data is null) Console.WriteLine("Updating widget with cached data");
-        if (data is not null) options.Data = data;
+        if (data     is not null) options.Data     = data;
+        Console.WriteLine($"PipeUpdate: _widgetId={_widgetId}, template={template is not null}, data={data is not null}");
         WidgetManager.GetDefault().UpdateWidget(options);
     }
 
@@ -110,8 +134,8 @@ internal partial class WidgetProvider : IWidgetProvider
         if (_widgetId is null) return;
         WidgetManager.GetDefault().UpdateWidget(new WidgetUpdateRequestOptions(_widgetId)
         {
-            Template = DefaultTemplate,
-            Data = "{}",
+            Template = _cachedTemplate ?? DefaultTemplate,
+            Data     = _cachedData     ?? "{}",
         });
     }
 }

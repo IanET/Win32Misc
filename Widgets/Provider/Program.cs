@@ -44,18 +44,8 @@ public static class Program
 
         StartPipeServer();
 
-        // if (GetConsoleWindow() != IntPtr.Zero)
-        // {
-        //     Console.WriteLine("Press ENTER to exit.");
-        //     Console.ReadLine();
-        // }
-        // else
-        // {
-        //     WidgetProvider.WidgetDeletedEvent.WaitOne();
-        // }
-
-        WidgetProvider.WidgetDeletedEvent.WaitOne();
-        ClassObject.Revoke(cookie);
+        Console.WriteLine("Press ENTER to exit.");
+        Console.ReadLine();
     }
 
     static Process? LaunchJuliaClient()
@@ -67,6 +57,7 @@ public static class Program
                 FileName        = "julia.exe",
                 Arguments       = $"--project=\"{ClientDir}\" \"{JuliaScript}\"",
                 UseShellExecute = false,
+                CreateNoWindow  = true,
             });
             Console.WriteLine(julia is not null
                 ? $"Julia client started (PID {julia.Id})"
