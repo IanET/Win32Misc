@@ -56,12 +56,14 @@ function get_window_icon(hwnd)
     (hicon == C_NULL || Int(hicon) == 1) ? nothing : hicon
 end
 
-const _results = Tuple{W32.HWND, String, Union{W32.HICON, Nothing}}[]
+const Maybe{T} = Union{T, Nothing}
+const WindowInfo = @NamedTuple{hwnd::W32.HWND, title::String, icon::Maybe{W32.HICON}}
+const _results = WindowInfo[]
 
 function _enum_callback(hwnd::Ptr{Cvoid}, _::Int)::Cint
     if is_alt_tab_window(hwnd)
         title = get_title(hwnd)
-        title !== nothing && push!(_results, (hwnd, title, get_window_icon(hwnd)))
+        title !== nothing && push!(_results, (; hwnd, title, icon = get_window_icon(hwnd)))
     end
     Cint(1)
 end

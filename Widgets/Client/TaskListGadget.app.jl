@@ -1,23 +1,36 @@
-using JSON3, Dates, Sockets, HTTP, LibBaseTsd
+using JSON3, Dates, Sockets, HTTP, LibBaseTsd, Logging
 
 include("ATWindows.jl")
 include("IconToPng.jl")
 
+struct DebugLogger <: AbstractLogger end
+Logging.min_enabled_level(::DebugLogger) = Logging.Info
+Logging.shouldlog(::DebugLogger, args...) = true
+Logging.catch_exceptions(::DebugLogger) = false
+
+function Logging.handle_message(::DebugLogger, level, message, _module, group, id, file, line; kwargs...)
+    msg = string(level, ": ", message)
+    for (k, v) in kwargs
+        msg *= " $k=$v"
+    end
+    @ccall "kernel32".OutputDebugStringW((msg * "\n")::Cwstring)::Cvoid
+end
+
+global_logger(DebugLogger())
 
 const PIPE_NAME        = "\\\\.\\pipe\\TestWidgetProvider.d94hev71b6gse_to_provider"
 const ACTION_PIPE_NAME = "\\\\.\\pipe\\TestWidgetProvider.d94hev71b6gse_from_provider"
 const IMAGE_PORT       = 8765
 const IMAGE_DIR        = joinpath(dirname(@__FILE__), "..", "Assets")
 
-current_windows = Tuple{W32.HWND, String, Union{W32.HICON, Nothing}}[]
+current_windows = WindowInfo[]
 const icon_cache = Dict{UInt, Vector{UInt8}}()
-
 
 function _cached_icon_png(hwnd_int::UInt)
     haskey(icon_cache, hwnd_int) && return icon_cache[hwnd_int]
-    idx = findfirst(w -> UInt(w[1]) == hwnd_int, current_windows)
+    idx = findfirst(w -> UInt(w.hwnd) == hwnd_int, current_windows)
     idx === nothing && return nothing
-    hicon = current_windows[idx][3]
+    hicon = current_windows[idx].icon
     hicon === nothing && return nothing
     png = icon_to_png_bytes(hicon)
     png === nothing && return nothing
@@ -160,7 +173,7 @@ function windows_data()
     slice    = current_windows[start : min(start + n - 1, total)]
     can_prev = page_offset > 0
     can_next = page_offset < total - n
-    JSON3.write((; windows = [(; title = first(t, 32), hwnd = string(UInt(h))) for (h, t, _) in slice], can_prev, can_next))
+    JSON3.write((; windows = [(; title = first(w.title, 32), hwnd = string(UInt(w.hwnd))) for w in slice], can_prev, can_next))
 end
 
 function dismiss_widget_host()

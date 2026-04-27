@@ -3,6 +3,7 @@ using Microsoft.Windows.Widgets.Providers;
 using System.Diagnostics;
 using System.IO.Pipes;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using WinRT;
@@ -17,12 +18,11 @@ public static class Program
     static readonly string ClientDir   = Path.Combine(AppContext.BaseDirectory, "Client");
     static readonly string JuliaScript = Path.Combine(ClientDir, "TaskListGadget.app.jl");
 
-    [DllImport("kernel32.dll")]
-    static extern IntPtr GetConsoleWindow();
-
     [MTAThread]
     static void Main(string[] args)
     {
+        Console.SetOut(new DebugWriter());
+
         if (args.Length == 0 || args[0] != "-RegisterProcessAsComServer")
         {
             Console.WriteLine("Not launched as COM server — exiting.");
@@ -104,3 +104,14 @@ record PipeMessage(
     [property: JsonPropertyName("template")] string? Template,
     [property: JsonPropertyName("data")]     string? Data
 );
+
+class DebugWriter : TextWriter
+{
+    public override Encoding Encoding => Encoding.Unicode;
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+    static extern void OutputDebugString(string lpOutputString);
+
+    public override void WriteLine(string? value) => OutputDebugString((value ?? "") + "\n");
+    public override void Write(string? value)     => OutputDebugString(value ?? "");
+}
