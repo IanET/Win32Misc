@@ -44,8 +44,7 @@ public static class Program
 
         StartPipeServer();
 
-        Console.WriteLine("Press ENTER to exit.");
-        Console.ReadLine();
+        Thread.Sleep(Timeout.Infinite);
     }
 
     static Process? LaunchJuliaClient()

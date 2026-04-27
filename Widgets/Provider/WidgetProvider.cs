@@ -68,6 +68,7 @@ internal partial class WidgetProvider : IWidgetProvider
         _widgetId = null;
         Console.WriteLine($"Widget deleted with ID: {widgetId}, customState: {customState}");
         WidgetManager.GetDefault().DeleteWidget(widgetId);
+        Task.Delay(1000).ContinueWith(_ => Environment.Exit(0));
     }
 
     public void Activate(WidgetContext widgetContext)
