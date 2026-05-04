@@ -4,6 +4,7 @@ using LibBaseTsd
 # @info "Win32"
 include("../common/Win32.jl")
 using .W32
+import .W32: TRUE, FALSE
 
 # @info "LibSkia"
 include("../common/LibSkia.jl")
@@ -29,7 +30,7 @@ const HINST::HINSTANCE = GetModuleHandleW(C_NULL)
 cwstring(s) = cconvert(Cwstring, s)
 tostring(v::AbstractArray{Cwchar_t}) = transcode(String, @view v[begin:findfirst(iszero, v)-1])
 tolparam(s::String) = s |> cwstring |> pointer |> LPARAM
-Base.Tuple(v::MemoryRef{UInt16}, len) = copyto!(zeros(eltype(v), len), v.mem) |> Tuple
+Base.Tuple(v::AbstractVector{UInt16}, len) = copyto!(zeros(UInt16, len), v) |> Tuple
 size_t(i::Int64) = reinterpret(UInt64, i) |> SIZE_T
 flush_ws() = SetProcessWorkingSetSize(GetCurrentProcess(), size_t(-1), size_t(-1))
 
