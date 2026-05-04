@@ -5,6 +5,9 @@ using System.Text.Json;
 
 namespace TestWidgetProvider;
 
+// Deploy with:
+// powershell.exe -Command "Add-AppxPackage -Register 'C:\src\ianet-github\Win32Misc\Widgets\Provider\bin\ARM64\Debug\net8.0-windows10.0.19041.0\AppxManifest.xml'"
+
 // CLSID must match the ClassId in Package.appxmanifest
 [Guid("f8444433-3aa5-42a4-a496-5c2b36f3b3eb")]
 internal partial class WidgetProvider : IWidgetProvider
