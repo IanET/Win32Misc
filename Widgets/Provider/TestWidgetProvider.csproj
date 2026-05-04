@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Platforms>x64;x86;ARM64</Platforms>
+    <EnableMsixTooling>true</EnableMsixTooling>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="Assets\**\*.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ProviderAssets\**\*.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\..\Common\Win32.jl"            Link="Client\Win32.jl">           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <Content Include="..\Client\ATWindows.jl"          Link="Client\ATWindows.jl">          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <Content Include="..\Client\IconToPng.jl"          Link="Client\IconToPng.jl">          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <Content Include="..\Client\TaskListGadget.app.jl" Link="Client\TaskListGadget.app.jl"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <Content Include="..\Client\Project.toml"          Link="Client\Project.toml">          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <Content Include="..\Client\Manifest.toml"         Link="Client\Manifest.toml">         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.22621.3233" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.6.250228001" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
+    <ProjectCapability Include="Msix" />
+  </ItemGroup>
+
+  <PropertyGroup Condition="'$(DisableHasPackageAndPublishMenuAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
+    <HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
+  </PropertyGroup>
+
+</Project>

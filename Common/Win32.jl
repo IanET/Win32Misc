@@ -15,6 +15,9 @@ const Shlwapi = "shlwapi.dll"
 const MAKEINTRESOURCEW(i) = LPWSTR(i)
 const MAKEINTRESOURCE = MAKEINTRESOURCEW
 
+const TRUE  = BOOL(1)
+const FALSE = BOOL(0)
+
 LOWORD(l) = WORD(DWORD_PTR(l) & 0xffff)
 HIWORD(l) = WORD(DWORD_PTR(l) >> 16 & 0xffff)
 LOBYTE(w) = BYTE(DWORD_PTR(w) & 0xff)
@@ -211,6 +214,13 @@ const WM_NCRBUTTONDBLCLK = 0x00a6
 const WM_NCMBUTTONDOWN = 0x00a7
 const WM_NCMBUTTONUP = 0x00a8
 const WM_NCMBUTTONDBLCLK = 0x00a9
+const WM_KEYDOWN    = 0x0100
+const WM_KEYUP      = 0x0101
+const WM_SYSKEYDOWN = 0x0104
+const WM_SYSKEYUP   = 0x0105
+
+const VK_ESCAPE = UINT(0x1B)
+
 const WM_CUT = 0x0300
 const WM_COPY = 0x0301
 const WM_PASTE = 0x0302
@@ -736,9 +746,11 @@ const PROCESS_SET_INFORMATION = 0x0200
 const PROCESS_QUERY_INFORMATION = 0x0400
 const PROCESS_SUSPEND_RESUME = 0x0800
 const PROCESS_ALL_ACCESS = 0x1F0FFF
+const PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
 
 const GWL_STYLE = -16
 const GWL_EXSTYLE = -20
+const GCLP_HICON = Cint(-14)
 
 const HSHELL_WINDOWCREATED = 1
 const HSHELL_WINDOWDESTROYED = 2
@@ -845,6 +857,7 @@ const HALFTONE = 0x00000004
 
 const BI_RGB = 0
 const DIB_RGB_COLORS = 0
+const DI_NORMAL = UINT(0x0003)
 
 const SIZE_RESTORED = 0
 const SIZE_MINIMIZED = 1
@@ -1114,6 +1127,13 @@ GetEnvironmentVariableW(lpName, lpBuffer, nSize) = @ccall Kernel32.GetEnvironmen
 GetScrollPos(hWnd, nBar) = @ccall User32.GetScrollPos(hWnd::HWND, nBar::Cint)::Cint
 GetScrollInfo(hWnd, nBar, lpsi) = @ccall User32.GetScrollInfo(hWnd::HWND, nBar::Cint, lpsi::Ptr{SCROLLINFO})::BOOL
 GetCurrentThreadId() = @ccall Kernel32.GetCurrentThreadId()::DWORD
+GetForegroundWindow() = @ccall User32.GetForegroundWindow()::HWND
+GetShellWindow() = @ccall User32.GetShellWindow()::HWND
+IsIconic(hWnd) = @ccall User32.IsIconic(hWnd::HWND)::BOOL
+GetWindowThreadProcessId(hWnd, lpdwProcessId) = @ccall User32.GetWindowThreadProcessId(hWnd::HWND, lpdwProcessId::Ptr{DWORD})::DWORD
+AttachThreadInput(idAttach, idAttachTo, fAttach) = @ccall User32.AttachThreadInput(idAttach::DWORD, idAttachTo::DWORD, fAttach::BOOL)::BOOL
+SetForegroundWindow(hWnd) = @ccall User32.SetForegroundWindow(hWnd::HWND)::BOOL
+BringWindowToTop(hWnd) = @ccall User32.BringWindowToTop(hWnd::HWND)::BOOL
 UpdateWindow(hWnd) = @ccall User32.UpdateWindow(hWnd::HWND)::BOOL
 AdjustWindowRectEx(lpRect, dwStyle, bMenu, dwExStyle) = @ccall User32.AdjustWindowRectEx(lpRect::LPRECT, dwStyle::DWORD, bMenu::BOOL, dwExStyle::DWORD)::BOOL
 CreateBitmap(nWidth, nHeight, nPlanes, nBitCount, lpBits) = @ccall Gdi32.CreateBitmap(nWidth::Cint, nHeight::Cint, nPlanes::UINT, nBitCount::UINT, lpBits::LPVOID)::HBITMAP
@@ -1129,6 +1149,9 @@ EnableWindow(hWnd, bEnable) = @ccall User32.EnableWindow(hWnd::HWND, bEnable::BO
 GetDC(hWnd) = @ccall User32.GetDC(hWnd::HWND)::HDC
 ReleaseDC(hWnd, hDC) = @ccall User32.ReleaseDC(hWnd::HWND, hDC::HDC)::Cint
 CreateDIBSection(hdc, pbmi, iUsage, ppvBits, hSection, dwOffset) = @ccall Gdi32.CreateDIBSection(hdc::HDC, pbmi::Ptr{BITMAPINFO}, iUsage::DWORD, ppvBits::Ptr{LPVOID}, hSection::HANDLE, dwOffset::DWORD)::HBITMAP
+QueryFullProcessImageNameW(hProcess, dwFlags, lpExeName, lpdwSize) = @ccall Kernel32.QueryFullProcessImageNameW(hProcess::HANDLE, dwFlags::DWORD, lpExeName::LPWSTR, lpdwSize::Ptr{DWORD})::BOOL
+GetClassLongPtrW(hWnd, nIndex) = @ccall User32.GetClassLongPtrW(hWnd::HWND, nIndex::Cint)::ULONG_PTR
+DrawIconEx(hDC, xLeft, yTop, hIcon, cxWidth, cyHeight, istepIfAniCur, hbrFlickerFreeDraw, diFlags) = @ccall User32.DrawIconEx(hDC::HDC, xLeft::Cint, yTop::Cint, hIcon::HICON, cxWidth::Cint, cyHeight::Cint, istepIfAniCur::UINT, hbrFlickerFreeDraw::HBRUSH, diFlags::UINT)::BOOL
 
 # Helpers
 RECT() = RECT(0, 0, 0, 0)
