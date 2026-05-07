@@ -43,6 +43,8 @@ function paintButton(pbits::Ptr{Cvoid}, w::Integer, h::Integer, label::String)
     font = sk_font_new()
     sk_font_set_typeface(font, typeface)
     sk_font_set_size(font, 13f0)
+    sk_font_set_edging(font, SUBPIXEL_ANTIALIAS_SK_FONT_EDGING)
+    sk_font_set_subpixel(font, true)
 
     textwidth = sk_font_measure_text(font, pointer(label), sizeof(label), UTF8_SK_TEXT_ENCODING, C_NULL, C_NULL)
     metrics = Ref{sk_fontmetrics_t}()

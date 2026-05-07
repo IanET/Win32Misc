@@ -1,4 +1,4 @@
-@info "SkiaTest"
+@info "UIFrameworkTest"
 using LibBaseTsd
 
 # @info "Win32"
@@ -259,7 +259,7 @@ function createMainWindow()
         C_NULL, 
         pointer(classname))
     @preserve classname RegisterClassW(Ref(wc))
-    hwnd = CreateWindowExW(DWORD(0), classname, L"Skia Test", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 512, 512, HWND(0), HMENU(0), HINST, LPVOID(0))
+    hwnd = CreateWindowExW(DWORD(0), classname, L"UIFramework Test", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 512, 512, HWND(0), HMENU(0), HINST, LPVOID(0))
     return hwnd
 end
 
