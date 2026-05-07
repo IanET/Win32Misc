@@ -6,8 +6,7 @@
     val::Int = 0
 end
 
-Base.getindex(s::StarSize) = s.val
-Base.Int(s::StarSize) = s[]
+Base.Int(s::StarSize) = s.val
 Base.:(+)(x::StarSize, y::StarSize) = StarSize(Int(x) + Int(y))
 
 macro star_str(s) parse(Int, s) |> StarSize end
@@ -16,7 +15,7 @@ macro ★_str(s) parse(Int, s) |> StarSize end
 const IntOrStarSize = Union{Int, StarSize}
 
 @kwdef mutable struct GridLayout
-    grid::Matrix{Int} = Matrix(undef, 0, 0)
+    grid::Matrix{Int} = Matrix{Int}(undef, 0, 0)
     rowHeights::Vector{IntOrStarSize} = []
     colWidths::Vector{IntOrStarSize} = []
 end
@@ -29,14 +28,14 @@ function GridLayout(grid::Matrix{Int})
 end
 GridLayout(v::Vector{Int}) = GridLayout(reshape(v, 1, length(v)))
 
-union(rc1::RECT, rc2::RECT) = RECT(min(rc1.left, rc2.left), min(rc1.top, rc2.top), max(rc1.right, rc2.right), max(rc1.bottom, rc2.bottom))
+rect_union(rc1::RECT, rc2::RECT) = RECT(min(rc1.left, rc2.left), min(rc1.top, rc2.top), max(rc1.right, rc2.right), max(rc1.bottom, rc2.bottom))
 
-function count(sizes::Vector{IntOrStarSize})
+function count_sizes(sizes::Vector{IntOrStarSize})
     stars = 0
     fixed = 0
     for size in sizes
         if size isa StarSize
-            stars += size[]
+            stars += Int(size)
         else
             fixed += size
         end
@@ -58,23 +57,26 @@ function layout(hwnd::HWND, gl::GridLayout)
 
     # Measure 
     idrects = Dict{Int, RECT}()
-    hstars, hfixed = count(gl.rowHeights)
-    wstars, wfixed = count(gl.colWidths)
+    hstars, hfixed = count_sizes(gl.rowHeights)
+    wstars, wfixed = count_sizes(gl.colWidths)
     starheight = hstars != 0 ? ((rcparent.bottom - rcparent.top) - hfixed) ÷ hstars : 0
     starwidth = wstars != 0 ? ((rcparent.right - rcparent.left) - wfixed) ÷ wstars : 0
+    hrem = hstars != 0 ? ((rcparent.bottom - rcparent.top) - hfixed) % hstars : 0
+    wrem = wstars != 0 ? ((rcparent.right - rcparent.left) - wfixed) % wstars : 0
+    last_star_row = findlast(s -> s isa StarSize, gl.rowHeights)
+    last_star_col = findlast(s -> s isa StarSize, gl.colWidths)
 
     y = rcparent.top
     for i in 1:gridrows
         x = rcparent.left
-        h = 0
+        rowheight = gl.rowHeights[i]
+        h = rowheight isa StarSize ? Int(rowheight) * starheight + (i == last_star_row ? hrem : 0) : rowheight
         for j in 1:gridcols
             colwidth = gl.colWidths[j]
-            rowheight = gl.rowHeights[i]
-            w = colwidth isa StarSize ? Int(colwidth) * starwidth : colwidth
-            h = rowheight isa StarSize ? Int(rowheight) * starheight : rowheight
+            w = colwidth isa StarSize ? Int(colwidth) * starwidth + (j == last_star_col ? wrem : 0) : colwidth
             rcchild = RECT(x, y, x+w, y+h)
             id = gl.grid[i, j]
-            rcchild = union(get(idrects, id, rcchild), rcchild) # union of all cells with the same id
+            rcchild = rect_union(get(idrects, id, rcchild), rcchild) # union of all cells with the same id
             idrects[id] = rcchild
             x += w
         end
