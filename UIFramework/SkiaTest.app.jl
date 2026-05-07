@@ -45,24 +45,30 @@ _layout = GridLayout(
     [5, ★"1", 5, 30, 5],   # row heights
     [5, ★"1", 75, 75, 5])  # col widths
 
-_dib::HBITMAP = C_NULL
-_pbits::Ptr{Cvoid} = C_NULL
+mutable struct ImageWindowState
+    dib::HBITMAP
+    pbits::Ptr{Cvoid}
+end
+
+const _image_states = Dict{HWND, ImageWindowState}()
 
 function onImageCreate(hwnd)::LRESULT
-    # @info "onImageCreate" hwnd
+    _image_states[hwnd] = ImageWindowState(C_NULL, C_NULL)
     return 0
 end
 
 function onImageDestroy(hwnd)::LRESULT
-    # @info "onImageDestroy" hwnd
+    state = _image_states[hwnd]
+    if state.dib != C_NULL; DeleteObject(state.dib) end
+    delete!(_image_states, hwnd)
     return 0
 end
 
 sk_color_set_argb(a, r, g, b) = ((UInt32(a) << 24) | (UInt32(r) << 16) | (UInt32(g) << 8) | UInt32(b))
 
-function skiaDraw(w, h)
+function skiaDraw(pbits, w, h)
     info = sk_imageinfo_t(C_NULL, w, h, BGRA_8888_SK_COLORTYPE, PREMUL_SK_ALPHATYPE)
-    surface = sk_surface_new_raster_direct(Ref(info), _pbits, w * 4, C_NULL, C_NULL, C_NULL)
+    surface = sk_surface_new_raster_direct(Ref(info), pbits, w * 4, C_NULL, C_NULL, C_NULL)
     canvas = sk_surface_get_canvas(surface)
 
     fill = sk_paint_new()
@@ -90,13 +96,14 @@ end
 
 function onImagePaint(hwnd)::LRESULT
     @info "onImagePaint" hwnd
+    state = _image_states[hwnd]
     ps = PAINTSTRUCT() |> Ref
     hdc = BeginPaint(hwnd, ps)
     rcclient = RECT() |> Ref
     GetClientRect(hwnd, rcclient)
-    skiaDraw(rcclient[].right - rcclient[].left, rcclient[].bottom - rcclient[].top) # draw the whole thing
+    skiaDraw(state.pbits, rcclient[].right - rcclient[].left, rcclient[].bottom - rcclient[].top)
     hdcmem = CreateCompatibleDC(hdc)
-    hbmpold = SelectObject(hdcmem, _dib)
+    hbmpold = SelectObject(hdcmem, state.dib)
     BitBlt(hdc, ps[].rcPaint.left, ps[].rcPaint.top, ps[].rcPaint.right - ps[].rcPaint.left, ps[].rcPaint.bottom - ps[].rcPaint.top, hdcmem, ps[].rcPaint.left, ps[].rcPaint.top, SRCCOPY)
     SelectObject(hdcmem, hbmpold)
     DeleteDC(hdcmem)
@@ -105,18 +112,18 @@ function onImagePaint(hwnd)::LRESULT
 end
 
 function onImageSize(hwnd, width, height)::LRESULT
-    global _dib, _pbits
     @info "onImageSize" hwnd width height
     if width <= 0 || height <= 0; return 0 end
+    state = _image_states[hwnd]
     bmih = BITMAPINFOHEADER(sizeof(BITMAPINFOHEADER), width, -1*height, 1, 32, BI_RGB, 0, 0, 0, 0, 0) |> Ref
     bmpinfo = BITMAPINFO(bmih[], (RGBQUAD(),)) |> Ref
     hdc = GetDC(hwnd)
-    if _dib != C_NULL; DeleteObject(_dib) end
+    if state.dib != C_NULL; DeleteObject(state.dib) end
     pbits = Ptr{Cvoid}(0) |> Ref
-    _dib = CreateDIBSection(hdc, bmpinfo, DIB_RGB_COLORS, pbits, C_NULL, 0)
-    @assert _dib != C_NULL
+    state.dib = CreateDIBSection(hdc, bmpinfo, DIB_RGB_COLORS, pbits, C_NULL, 0)
+    @assert state.dib != C_NULL
     @assert pbits[] != C_NULL
-    _pbits = pbits[]
+    state.pbits = pbits[]
     ReleaseDC(hwnd, hdc)
     return 0
 end
