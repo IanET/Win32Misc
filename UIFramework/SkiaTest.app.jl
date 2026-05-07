@@ -12,6 +12,7 @@ using .LibSkia
 
 # @info "Layout"
 include("Layout.jl")
+include("Elements.jl")
 
 # @info "Base"
 import Base.cconvert, .GC.@preserve
@@ -48,12 +49,15 @@ _layout = GridLayout(
 mutable struct ImageWindowState
     dib::HBITMAP
     pbits::Ptr{Cvoid}
+    onPaint::Function
 end
+
+ImageWindowState() = ImageWindowState(C_NULL, C_NULL, (pbits, w, h) -> nothing)
 
 const _image_states = Dict{HWND, ImageWindowState}()
 
 function onImageCreate(hwnd)::LRESULT
-    _image_states[hwnd] = ImageWindowState(C_NULL, C_NULL)
+    _image_states[hwnd] = ImageWindowState()
     return 0
 end
 
@@ -101,7 +105,9 @@ function onImagePaint(hwnd)::LRESULT
     hdc = BeginPaint(hwnd, ps)
     rcclient = RECT() |> Ref
     GetClientRect(hwnd, rcclient)
-    skiaDraw(state.pbits, rcclient[].right - rcclient[].left, rcclient[].bottom - rcclient[].top)
+    w = rcclient[].right - rcclient[].left
+    h = rcclient[].bottom - rcclient[].top
+    state.onPaint(state.pbits, w, h)
     hdcmem = CreateCompatibleDC(hdc)
     hbmpold = SelectObject(hdcmem, state.dib)
     BitBlt(hdc, ps[].rcPaint.left, ps[].rcPaint.top, ps[].rcPaint.right - ps[].rcPaint.left, ps[].rcPaint.bottom - ps[].rcPaint.top, hdcmem, ps[].rcPaint.left, ps[].rcPaint.top, SRCCOPY)
@@ -166,13 +172,18 @@ function createImageWindow(parent, id, x, y, w, h)
 end
 
 function onCreate(hwnd)
+    image_element = Element(skiaDraw)
     hwndImage = createImageWindow(hwnd, IDC_IMAGE, 0, 0, 100, 100)
-    lf = W32.LOGFONTW(-16, 0, 0, 0, 400, 0, 0, 0, 1, 0, 0, 0, 0, Tuple(L"Segoe UI", 32))
-    hfont = W32.CreateFontIndirectW(Ref(lf))
-    ok = CreateWindowExW(0, L"BUTTON", L"OK", WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_TABSTOP, 10, 10, 100, 100, hwnd, HMENU(IDC_OK), HINST, C_NULL)
-    SendMessageW(ok, WM_SETFONT, WPARAM(hfont), LPARAM(TRUE))
-    cancel = CreateWindowExW(0, L"BUTTON", L"Cancel", WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_TABSTOP, 20, 20, 100, 100, hwnd, HMENU(IDC_CANCEL), HINST, C_NULL)
-    SendMessageW(cancel, WM_SETFONT, WPARAM(hfont), LPARAM(TRUE))
+    _image_states[hwndImage].onPaint = image_element.onPaint
+
+    ok_button = Button("OK")
+    hwndOK = createImageWindow(hwnd, IDC_OK, 0, 0, 100, 100)
+    _image_states[hwndOK].onPaint = ok_button.onPaint
+
+    cancel_button = Button("Cancel")
+    hwndCancel = createImageWindow(hwnd, IDC_CANCEL, 0, 0, 100, 100)
+    _image_states[hwndCancel].onPaint = cancel_button.onPaint
+
     return 0
 end
 
