@@ -59,10 +59,12 @@ function layout(hwnd::HWND, gl::GridLayout)
     idrects = Dict{Int, RECT}()
     hstars, hfixed = count_sizes(gl.rowHeights)
     wstars, wfixed = count_sizes(gl.colWidths)
-    starheight = hstars != 0 ? ((rcparent.bottom - rcparent.top) - hfixed) ÷ hstars : 0
-    starwidth = wstars != 0 ? ((rcparent.right - rcparent.left) - wfixed) ÷ wstars : 0
-    hrem = hstars != 0 ? ((rcparent.bottom - rcparent.top) - hfixed) % hstars : 0
-    wrem = wstars != 0 ? ((rcparent.right - rcparent.left) - wfixed) % wstars : 0
+    hspace = max(0, (rcparent.bottom - rcparent.top) - hfixed)
+    wspace = max(0, (rcparent.right - rcparent.left) - wfixed)
+    starheight = hstars != 0 ? hspace ÷ hstars : 0
+    starwidth = wstars != 0 ? wspace ÷ wstars : 0
+    hrem = hstars != 0 ? hspace % hstars : 0
+    wrem = wstars != 0 ? wspace % wstars : 0
     last_star_row = findlast(s -> s isa StarSize, gl.rowHeights)
     last_star_col = findlast(s -> s isa StarSize, gl.colWidths)
 
