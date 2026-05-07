@@ -1149,6 +1149,7 @@ EnableWindow(hWnd, bEnable) = @ccall User32.EnableWindow(hWnd::HWND, bEnable::BO
 GetDC(hWnd) = @ccall User32.GetDC(hWnd::HWND)::HDC
 ReleaseDC(hWnd, hDC) = @ccall User32.ReleaseDC(hWnd::HWND, hDC::HDC)::Cint
 CreateDIBSection(hdc, pbmi, iUsage, ppvBits, hSection, dwOffset) = @ccall Gdi32.CreateDIBSection(hdc::HDC, pbmi::Ptr{BITMAPINFO}, iUsage::DWORD, ppvBits::Ptr{LPVOID}, hSection::HANDLE, dwOffset::DWORD)::HBITMAP
+SetDIBitsToDevice(hdc, xDest, yDest, w, h, xSrc, ySrc, startScan, cLines, lpvBits, lpbmi, fuColorUse) = @ccall Gdi32.SetDIBitsToDevice(hdc::HDC, xDest::Cint, yDest::Cint, w::DWORD, h::DWORD, xSrc::Cint, ySrc::Cint, startScan::UINT, cLines::UINT, lpvBits::Ptr{Cvoid}, lpbmi::Ptr{BITMAPINFO}, fuColorUse::UINT)::Cint
 QueryFullProcessImageNameW(hProcess, dwFlags, lpExeName, lpdwSize) = @ccall Kernel32.QueryFullProcessImageNameW(hProcess::HANDLE, dwFlags::DWORD, lpExeName::LPWSTR, lpdwSize::Ptr{DWORD})::BOOL
 GetClassLongPtrW(hWnd, nIndex) = @ccall User32.GetClassLongPtrW(hWnd::HWND, nIndex::Cint)::ULONG_PTR
 DrawIconEx(hDC, xLeft, yTop, hIcon, cxWidth, cyHeight, istepIfAniCur, hbrFlickerFreeDraw, diFlags) = @ccall User32.DrawIconEx(hDC::HDC, xLeft::Cint, yTop::Cint, hIcon::HICON, cxWidth::Cint, cyHeight::Cint, istepIfAniCur::UINT, hbrFlickerFreeDraw::HBRUSH, diFlags::UINT)::BOOL

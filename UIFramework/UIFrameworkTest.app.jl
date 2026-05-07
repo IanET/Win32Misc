@@ -47,12 +47,13 @@ _layout = GridLayout(
     [5, ★"1", 75, 75, 5])  # col widths
 
 mutable struct ImageWindowState
-    dib::HBITMAP
-    pbits::Ptr{Cvoid}
+    buffer::Vector{UInt8}
+    width::Int32
+    height::Int32
     onPaint::Function
 end
 
-ImageWindowState() = ImageWindowState(C_NULL, C_NULL, (pbits, w, h) -> nothing)
+ImageWindowState() = ImageWindowState(UInt8[], Int32(0), Int32(0), (pbits, w, h) -> nothing)
 
 const _image_states = Dict{HWND, ImageWindowState}()
 
@@ -62,8 +63,6 @@ function onImageCreate(hwnd)::LRESULT
 end
 
 function onImageDestroy(hwnd)::LRESULT
-    state = _image_states[hwnd]
-    if state.dib != C_NULL; DeleteObject(state.dib) end
     delete!(_image_states, hwnd)
     return 0
 end
@@ -99,38 +98,26 @@ function skiaDraw(pbits, w, h)
 end
 
 function onImagePaint(hwnd)::LRESULT
-    @info "onImagePaint" hwnd
     state = _image_states[hwnd]
+    if isempty(state.buffer); return 0 end
     ps = PAINTSTRUCT() |> Ref
     hdc = BeginPaint(hwnd, ps)
-    rcclient = RECT() |> Ref
-    GetClientRect(hwnd, rcclient)
-    w = rcclient[].right - rcclient[].left
-    h = rcclient[].bottom - rcclient[].top
-    state.onPaint(state.pbits, w, h)
-    hdcmem = CreateCompatibleDC(hdc)
-    hbmpold = SelectObject(hdcmem, state.dib)
-    BitBlt(hdc, ps[].rcPaint.left, ps[].rcPaint.top, ps[].rcPaint.right - ps[].rcPaint.left, ps[].rcPaint.bottom - ps[].rcPaint.top, hdcmem, ps[].rcPaint.left, ps[].rcPaint.top, SRCCOPY)
-    SelectObject(hdcmem, hbmpold)
-    DeleteDC(hdcmem)
+    w, h = state.width, state.height
+    pbits = Ptr{Cvoid}(pointer(state.buffer))
+    state.onPaint(pbits, w, h)
+    bmih = BITMAPINFOHEADER(sizeof(BITMAPINFOHEADER), w, -h, 1, 32, BI_RGB, 0, 0, 0, 0, 0) |> Ref
+    bmpinfo = BITMAPINFO(bmih[], (RGBQUAD(),)) |> Ref
+    SetDIBitsToDevice(hdc, 0, 0, w, h, 0, 0, 0, h, pbits, bmpinfo, DIB_RGB_COLORS)
     EndPaint(hwnd, ps)
     return 0
 end
 
 function onImageSize(hwnd, width, height)::LRESULT
-    @info "onImageSize" hwnd width height
     if width <= 0 || height <= 0; return 0 end
     state = _image_states[hwnd]
-    bmih = BITMAPINFOHEADER(sizeof(BITMAPINFOHEADER), width, -1*height, 1, 32, BI_RGB, 0, 0, 0, 0, 0) |> Ref
-    bmpinfo = BITMAPINFO(bmih[], (RGBQUAD(),)) |> Ref
-    hdc = GetDC(hwnd)
-    if state.dib != C_NULL; DeleteObject(state.dib) end
-    pbits = Ptr{Cvoid}(0) |> Ref
-    state.dib = CreateDIBSection(hdc, bmpinfo, DIB_RGB_COLORS, pbits, C_NULL, 0)
-    @assert state.dib != C_NULL
-    @assert pbits[] != C_NULL
-    state.pbits = pbits[]
-    ReleaseDC(hwnd, hdc)
+    resize!(state.buffer, Int(width) * Int(height) * 4)
+    state.width = width
+    state.height = height
     return 0
 end
 
