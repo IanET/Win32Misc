@@ -69,30 +69,32 @@ sk_color_set_argb(a, r, g, b) = ((UInt32(a) << 24) | (UInt32(r) << 16) | (UInt32
 function skiaDraw(e::ImageCacheElement, w, h)
     cache = e.imageCache
     info = sk_imageinfo_t(C_NULL, w, h, BGRA_8888_SK_COLORTYPE, PREMUL_SK_ALPHATYPE)
-    @preserve cache surface = sk_surface_new_raster_direct(Ref(info), pointer(cache), w * 4, C_NULL, C_NULL, C_NULL)
-    canvas = sk_surface_get_canvas(surface)
+    @preserve cache begin
+        surface = sk_surface_new_raster_direct(Ref(info), pointer(cache), w * 4, C_NULL, C_NULL, C_NULL)
+        canvas = sk_surface_get_canvas(surface)
 
-    fill = sk_paint_new()
-    sk_paint_set_color(fill, sk_color_set_argb(0xFF, 0xA0, 0xB0, 0xE0))
-    sk_canvas_draw_paint(canvas, fill)
+        fill = sk_paint_new()
+        sk_paint_set_color(fill, sk_color_set_argb(0xFF, 0xA0, 0xB0, 0xE0))
+        sk_canvas_draw_paint(canvas, fill)
 
-    sk_paint_set_color(fill, sk_color_set_argb(0xFF, 0xD0, 0x80, 0x80))
-    rect = sk_rect_t(50, 50, w - 50, h - 50)
-    sk_canvas_draw_rect(canvas, Ref(rect), fill)
+        sk_paint_set_color(fill, sk_color_set_argb(0xFF, 0xD0, 0x80, 0x80))
+        rect = sk_rect_t(50, 50, w - 50, h - 50)
+        sk_canvas_draw_rect(canvas, Ref(rect), fill)
 
-    textpaint = sk_paint_new()
-    sk_paint_set_color(textpaint, sk_color_set_argb(0xFF, 0x00, 0x00, 0x00))
-    # sk_paint_set_antialias(textpaint, true)
-    text = "Hello, World!"
-    fontstyle = sk_fontstyle_new(SK_FONT_STYLE_NORMAL_WEIGHT, SK_FONT_STYLE_NORMAL_WIDTH, UPRIGHT_SK_FONT_STYLE_SLANT)
-    typeface = sk_typeface_create_from_name("Arial", fontstyle)
-    font = sk_font_new()
-    sk_font_set_typeface(font, typeface)
-    sk_font_set_size(font, 24.0)
-    sk_canvas_draw_simple_text(canvas, pointer(text), sizeof(text), UTF8_SK_TEXT_ENCODING, 10.0, 35.0, font, textpaint)
+        textpaint = sk_paint_new()
+        sk_paint_set_color(textpaint, sk_color_set_argb(0xFF, 0x00, 0x00, 0x00))
+        # sk_paint_set_antialias(textpaint, true)
+        text = "Hello, World!"
+        fontstyle = sk_fontstyle_new(SK_FONT_STYLE_NORMAL_WEIGHT, SK_FONT_STYLE_NORMAL_WIDTH, UPRIGHT_SK_FONT_STYLE_SLANT)
+        typeface = sk_typeface_create_from_name("Arial", fontstyle)
+        font = sk_font_new()
+        sk_font_set_typeface(font, typeface)
+        sk_font_set_size(font, 24.0)
+        sk_canvas_draw_simple_text(canvas, pointer(text), sizeof(text), UTF8_SK_TEXT_ENCODING, 10.0, 35.0, font, textpaint)
 
-    sk_paint_delete(fill)
-    sk_surface_unref(surface)
+        sk_paint_delete(fill)
+        sk_surface_unref(surface)
+    end
 end
 
 function onElementHostPaint(hwnd)::LRESULT
