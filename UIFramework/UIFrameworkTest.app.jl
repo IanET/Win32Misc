@@ -48,9 +48,10 @@ _layout = GridLayout(
 
 mutable struct ImageWindowState
     onPaint::Function
+    onClick::Function
 end
 
-ImageWindowState() = ImageWindowState((w, h) -> Ptr{Cvoid}(0))
+ImageWindowState() = ImageWindowState((w, h) -> Ptr{Cvoid}(0), () -> nothing)
 
 const _image_states = Dict{HWND, ImageWindowState}()
 
@@ -113,6 +114,11 @@ function onImagePaint(hwnd)::LRESULT
     return 0
 end
 
+function onImageClick(hwnd)::LRESULT
+    _image_states[hwnd].onClick()
+    return 0
+end
+
 function imageWndProc(hwnd::HWND, umsg::UINT, wparam::WPARAM, lparam::LPARAM)::LRESULT
     try
         if umsg == WM_CREATE
@@ -121,6 +127,8 @@ function imageWndProc(hwnd::HWND, umsg::UINT, wparam::WPARAM, lparam::LPARAM)::L
             return onImageDestroy(hwnd)
         elseif umsg == WM_PAINT
             return onImagePaint(hwnd)
+        elseif umsg == WM_LBUTTONUP
+            return onImageClick(hwnd)
         end
         return DefWindowProcW(hwnd, umsg, wparam, lparam)
     catch exc
@@ -155,12 +163,16 @@ function onCreate(hwnd)
     _image_states[hwndImage].onPaint = (w, h) -> paint(image_element, w, h)
 
     ok_button = Button("OK")
+    ok_button.onClick = () -> @info "OK Clicked"
     hwndOK = createImageWindow(hwnd, IDC_OK, 0, 0, 100, 100)
     _image_states[hwndOK].onPaint = (w, h) -> paint(ok_button, w, h)
+    _image_states[hwndOK].onClick = () -> click(ok_button)
 
     cancel_button = Button("Cancel")
+    cancel_button.onClick = () -> @info "Cancel Clicked"
     hwndCancel = createImageWindow(hwnd, IDC_CANCEL, 0, 0, 100, 100)
     _image_states[hwndCancel].onPaint = (w, h) -> paint(cancel_button, w, h)
+    _image_states[hwndCancel].onClick = () -> click(cancel_button)
 
     return 0
 end

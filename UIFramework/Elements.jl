@@ -1,5 +1,8 @@
 
 abstract type AbstractElement end
+paint(e::AbstractElement, w::Integer, h::Integer) = e.onPaint(e, w, h)
+click(e::AbstractElement) = e.onClick()
+
 abstract type AbstractImageCacheElement <: AbstractElement end
 
 @kwdef mutable struct ImageCacheElement <: AbstractImageCacheElement
@@ -20,6 +23,7 @@ end
     label::String
     imageCache::Matrix{UInt32} = Matrix{UInt32}(undef, 0, 0)
     onPaint::Function = (b, w, h) -> nothing
+    onClick::Function = () -> nothing
 end
 
 function Button(label::String)
