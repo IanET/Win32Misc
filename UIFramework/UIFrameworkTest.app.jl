@@ -46,13 +46,11 @@ _layout = GridLayout(
     [5, ★"1", 5, 30, 5],   # row heights
     [5, ★"1", 75, 75, 5])  # col widths
 
-mutable struct ElementHostState
-    onPaint::Function
-    onClick::Function
-    onResize::Function
+@kwdef mutable struct ElementHostState
+    onPaint::Function = (w, h) -> Ptr{Cvoid}(0)
+    onClick::Function = () -> nothing
+    onResize::Function = (w, h) -> nothing
 end
-
-ElementHostState() = ElementHostState((w, h) -> Ptr{Cvoid}(0), () -> nothing, (w, h) -> nothing)
 
 const _hosts = Dict{HWND, ElementHostState}()
 
