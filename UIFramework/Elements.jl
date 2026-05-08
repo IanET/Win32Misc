@@ -1,37 +1,35 @@
 
 abstract type AbstractElement end
+abstract type AbstractImageCacheElement <: AbstractElement end
 
-@kwdef mutable struct Element <: AbstractElement
-    buffer::Matrix{UInt32} = Matrix{UInt32}(undef, 0, 0)
+@kwdef mutable struct ImageCacheElement <: AbstractImageCacheElement
+    imageCache::Matrix{UInt32} = Matrix{UInt32}(undef, 0, 0)
     onPaint::Function = (e, w, h) -> nothing
 end
 
-function paintElement(e::Element, w::Integer, h::Integer)
-    if size(e.buffer) != (w, h)
-        e.buffer = Matrix{UInt32}(undef, w, h)
+function paint(e::AbstractImageCacheElement, w::Integer, h::Integer)
+    if size(e.imageCache) != (w, h)
+        e.imageCache = Matrix{UInt32}(undef, w, h)
     end
-    pbits = Ptr{Cvoid}(pointer(e.buffer))
+    pbits = Ptr{Cvoid}(pointer(e.imageCache))
     e.onPaint(e, w, h)
     return pbits
 end
 
-@kwdef mutable struct Button <: AbstractElement
+@kwdef mutable struct Button <: AbstractImageCacheElement
     label::String
-    buffer::Matrix{UInt32} = Matrix{UInt32}(undef, 0, 0)
-    onPaint::Function = (w, h) -> Ptr{Cvoid}(0)
+    imageCache::Matrix{UInt32} = Matrix{UInt32}(undef, 0, 0)
+    onPaint::Function = (b, w, h) -> nothing
 end
 
 function Button(label::String)
     b = Button(label=label)
-    b.onPaint = (w, h) -> paintButton(b, w, h)
+    b.onPaint = (b, w, h) -> paintButton(b, w, h)
     return b
 end
 
 function paintButton(b::Button, w::Integer, h::Integer)
-    if size(b.buffer) != (w, h)
-        b.buffer = Matrix{UInt32}(undef, w, h)
-    end
-    pbits = Ptr{Cvoid}(pointer(b.buffer))
+    pbits = Ptr{Cvoid}(pointer(b.imageCache))
     label = b.label
     info = sk_imageinfo_t(C_NULL, w, h, BGRA_8888_SK_COLORTYPE, PREMUL_SK_ALPHATYPE)
     surface = sk_surface_new_raster_direct(Ref(info), pbits, w * 4, C_NULL, C_NULL, C_NULL)
@@ -74,5 +72,4 @@ function paintButton(b::Button, w::Integer, h::Integer)
 
     sk_paint_delete(paint)
     sk_surface_unref(surface)
-    return pbits
 end
