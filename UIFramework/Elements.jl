@@ -1,4 +1,6 @@
 
+import .GC.@preserve
+
 abstract type AbstractElement end
 paint(e::AbstractElement, w::Integer, h::Integer) = e.onPaint(e, w, h)
 click(e::AbstractElement) = e.onClick()
@@ -41,10 +43,10 @@ function Button(label::String)
 end
 
 function paintButton(b::Button, w::Integer, h::Integer)
-    pbits = Ptr{Cvoid}(pointer(b.imageCache))
+    cache = b.imageCache
     label = b.label
     info = sk_imageinfo_t(C_NULL, w, h, BGRA_8888_SK_COLORTYPE, PREMUL_SK_ALPHATYPE)
-    surface = sk_surface_new_raster_direct(Ref(info), pbits, w * 4, C_NULL, C_NULL, C_NULL)
+    @preserve cache surface = sk_surface_new_raster_direct(Ref(info), pointer(cache), w * 4, C_NULL, C_NULL, C_NULL)
     canvas = sk_surface_get_canvas(surface)
 
     paint = sk_paint_new()
@@ -72,7 +74,7 @@ function paintButton(b::Button, w::Integer, h::Integer)
     sk_font_set_edging(font, SUBPIXEL_ANTIALIAS_SK_FONT_EDGING)
     sk_font_set_subpixel(font, true)
 
-    textwidth = sk_font_measure_text(font, pointer(label), sizeof(label), UTF8_SK_TEXT_ENCODING, C_NULL, C_NULL)
+    @preserve label textwidth = sk_font_measure_text(font, pointer(label), sizeof(label), UTF8_SK_TEXT_ENCODING, C_NULL, C_NULL)
     metrics = Ref{sk_fontmetrics_t}()
     sk_font_get_metrics(font, metrics)
     x = (w - textwidth) / 2f0
@@ -80,7 +82,7 @@ function paintButton(b::Button, w::Integer, h::Integer)
 
     sk_paint_set_style(paint, FILL_SK_PAINT_STYLE)
     sk_paint_set_color(paint, sk_color_set_argb(0xFF, 0x1A, 0x1A, 0x1A))
-    sk_canvas_draw_simple_text(canvas, pointer(label), sizeof(label), UTF8_SK_TEXT_ENCODING, x, y, font, paint)
+    @preserve label sk_canvas_draw_simple_text(canvas, pointer(label), sizeof(label), UTF8_SK_TEXT_ENCODING, x, y, font, paint)
 
     sk_paint_delete(paint)
     sk_surface_unref(surface)

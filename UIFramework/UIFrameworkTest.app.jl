@@ -67,9 +67,9 @@ end
 sk_color_set_argb(a, r, g, b) = ((UInt32(a) << 24) | (UInt32(r) << 16) | (UInt32(g) << 8) | UInt32(b))
 
 function skiaDraw(e::ImageCacheElement, w, h)
-    pbits = Ptr{Cvoid}(pointer(e.imageCache))
+    cache = e.imageCache
     info = sk_imageinfo_t(C_NULL, w, h, BGRA_8888_SK_COLORTYPE, PREMUL_SK_ALPHATYPE)
-    surface = sk_surface_new_raster_direct(Ref(info), pbits, w * 4, C_NULL, C_NULL, C_NULL)
+    @preserve cache surface = sk_surface_new_raster_direct(Ref(info), pointer(cache), w * 4, C_NULL, C_NULL, C_NULL)
     canvas = sk_surface_get_canvas(surface)
 
     fill = sk_paint_new()
