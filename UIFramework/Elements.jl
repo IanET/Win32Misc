@@ -86,5 +86,4 @@ function paintButton(b::Button, w::Integer, h::Integer)
 
     sk_paint_delete(paint)
     sk_surface_unref(surface)
-    
 end
