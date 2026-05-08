@@ -66,7 +66,8 @@ end
 
 sk_color_set_argb(a, r, g, b) = ((UInt32(a) << 24) | (UInt32(r) << 16) | (UInt32(g) << 8) | UInt32(b))
 
-function skiaDraw(pbits, w, h)
+function skiaDraw(e::Element, w, h)
+    pbits = Ptr{Cvoid}(pointer(e.buffer))
     info = sk_imageinfo_t(C_NULL, w, h, BGRA_8888_SK_COLORTYPE, PREMUL_SK_ALPHATYPE)
     surface = sk_surface_new_raster_direct(Ref(info), pbits, w * 4, C_NULL, C_NULL, C_NULL)
     canvas = sk_surface_get_canvas(surface)
@@ -148,9 +149,10 @@ function createImageWindow(parent, id, x, y, w, h)
 end
 
 function onCreate(hwnd)
-    image_element = Element(skiaDraw)
+    image_element = Element()
+    image_element.onPaint = skiaDraw
     hwndImage = createImageWindow(hwnd, IDC_IMAGE, 0, 0, 100, 100)
-    _image_states[hwndImage].onPaint = image_element.onPaint
+    _image_states[hwndImage].onPaint = (w, h) -> paintElement(image_element, w, h)
 
     ok_button = Button("OK")
     hwndOK = createImageWindow(hwnd, IDC_OK, 0, 0, 100, 100)
