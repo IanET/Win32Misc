@@ -2,17 +2,33 @@
 import .GC.@preserve
 
 abstract type AbstractElement end
-paint(e::AbstractElement, w::Integer, h::Integer) = e.onPaint(e, w, h)
-click(e::AbstractElement) = e.onClick()
-resize(e::AbstractElement, w::Integer, h::Integer) = e.onResize(w, h)
+element(e::AbstractElement) = e
+paint(e::AbstractElement, w::Integer, h::Integer) = (el = element(e); el.onPaint(el, w, h))
+click(e::AbstractElement) = element(e).onClick()
+resize(e::AbstractElement, w::Integer, h::Integer) = element(e).onResize(w, h)
 
 abstract type AbstractImageCacheElement <: AbstractElement end
+
+abstract type AbstractButton <: AbstractImageCacheElement end
+button(b::AbstractButton) = b
+element(b::AbstractButton) = button(b)
+click(b::AbstractButton) = button(b).onClick()
 
 @kwdef mutable struct ImageCacheElement <: AbstractImageCacheElement
     imageCache::Matrix{UInt32} = Matrix{UInt32}(undef, 0, 0)
     onPaint::Function = (e, w, h) -> nothing
     onClick::Function = () -> nothing
     onResize::Function = (w, h) -> nothing
+    userData::Any = nothing
+end
+
+@kwdef mutable struct Button <: AbstractButton
+    label::String
+    imageCache::Matrix{UInt32} = Matrix{UInt32}(undef, 0, 0)
+    onPaint::Function = (b, w, h) -> nothing
+    onClick::Function = () -> nothing
+    onResize::Function = (w, h) -> nothing
+    userData::Any = nothing
 end
 
 function checkcache(e::AbstractImageCacheElement, w::Integer, h::Integer)
@@ -22,23 +38,17 @@ function checkcache(e::AbstractImageCacheElement, w::Integer, h::Integer)
 end
 
 function resize(e::AbstractImageCacheElement, w::Integer, h::Integer)
-    checkcache(e, w, h)
-    e.onResize(w, h)
+    el = element(e)
+    checkcache(el, w, h)
+    el.onResize(w, h)
 end
 
 function paint(e::AbstractImageCacheElement, w::Integer, h::Integer)
-    checkcache(e, w, h)
-    pbits = Ptr{Cvoid}(pointer(e.imageCache))
-    e.onPaint(e, w, h)
+    el = element(e)
+    checkcache(el, w, h)
+    pbits = Ptr{Cvoid}(pointer(el.imageCache))
+    el.onPaint(el, w, h)
     return pbits
-end
-
-@kwdef mutable struct Button <: AbstractImageCacheElement
-    label::String
-    imageCache::Matrix{UInt32} = Matrix{UInt32}(undef, 0, 0)
-    onPaint::Function = (b, w, h) -> nothing
-    onClick::Function = () -> nothing
-    onResize::Function = (w, h) -> nothing
 end
 
 function Button(label::String)
@@ -47,9 +57,10 @@ function Button(label::String)
     return b
 end
 
-function paintButton(b::Button, w::Integer, h::Integer)
-    cache = b.imageCache
-    label = b.label
+function paintButton(b::AbstractButton, w::Integer, h::Integer)
+    btn = button(b)
+    cache = btn.imageCache
+    label = btn.label
     info = sk_imageinfo_t(C_NULL, w, h, BGRA_8888_SK_COLORTYPE, PREMUL_SK_ALPHATYPE)
     surface = sk_surface_new_raster_direct(Ref(info), cache, w * 4, C_NULL, C_NULL, C_NULL)
     canvas = sk_surface_get_canvas(surface)

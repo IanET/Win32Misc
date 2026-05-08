@@ -77,6 +77,12 @@ function skiaDraw(e::ImageCacheElement, w, h)
     sk_surface_unref(surface)
 end
 
+# Test custom button by wrapping AbstractButton
+mutable struct MyCustomButton <: AbstractButton
+    button::Button
+end
+button(b::MyCustomButton) = b.button
+
 function onCreate(hwnd)
     image_element = ImageCacheElement()
     image_element.onPaint = skiaDraw
@@ -84,8 +90,8 @@ function onCreate(hwnd)
     _hosts[hwndImage].onPaint = (w, h) -> paint(image_element, w, h)
     _hosts[hwndImage].onResize = (w, h) -> resize(image_element, w, h)
 
-    ok_button = Button("OK")
-    ok_button.onClick = () -> @info "OK Clicked"
+    ok_button = MyCustomButton(Button("OK"))
+    button(ok_button).onClick = () -> @info "OK Clicked"
     hwndOK = createElementHost(hwnd, IDC_OK, 0, 0, 100, 100)
     _hosts[hwndOK].onPaint = (w, h) -> paint(ok_button, w, h)
     _hosts[hwndOK].onClick = () -> click(ok_button)
