@@ -47,13 +47,10 @@ _layout = GridLayout(
     [5, ★"1", 75, 75, 5])  # col widths
 
 mutable struct ImageWindowState
-    buffer::Vector{UInt8}
-    width::Int32
-    height::Int32
     onPaint::Function
 end
 
-ImageWindowState() = ImageWindowState(UInt8[], Int32(0), Int32(0), (pbits, w, h) -> nothing)
+ImageWindowState() = ImageWindowState((w, h) -> Ptr{Cvoid}(0))
 
 const _image_states = Dict{HWND, ImageWindowState}()
 
@@ -99,25 +96,19 @@ end
 
 function onImagePaint(hwnd)::LRESULT
     state = _image_states[hwnd]
-    if isempty(state.buffer); return 0 end
     ps = PAINTSTRUCT() |> Ref
     hdc = BeginPaint(hwnd, ps)
-    w, h = state.width, state.height
-    pbits = Ptr{Cvoid}(pointer(state.buffer))
-    state.onPaint(pbits, w, h)
-    bmih = BITMAPINFOHEADER(sizeof(BITMAPINFOHEADER), w, -h, 1, 32, BI_RGB, 0, 0, 0, 0, 0) |> Ref
-    bmpinfo = BITMAPINFO(bmih[], (RGBQUAD(),)) |> Ref
-    SetDIBitsToDevice(hdc, 0, 0, w, h, 0, 0, 0, h, pbits, bmpinfo, DIB_RGB_COLORS)
+    rcclient = RECT() |> Ref
+    GetClientRect(hwnd, rcclient)
+    w = rcclient[].right - rcclient[].left
+    h = rcclient[].bottom - rcclient[].top
+    if w > 0 && h > 0
+        pbits = state.onPaint(w, h)
+        bmih = BITMAPINFOHEADER(sizeof(BITMAPINFOHEADER), w, -h, 1, 32, BI_RGB, 0, 0, 0, 0, 0) |> Ref
+        bmpinfo = BITMAPINFO(bmih[], (RGBQUAD(),)) |> Ref
+        SetDIBitsToDevice(hdc, 0, 0, w, h, 0, 0, 0, h, pbits, bmpinfo, DIB_RGB_COLORS)
+    end
     EndPaint(hwnd, ps)
-    return 0
-end
-
-function onImageSize(hwnd, width, height)::LRESULT
-    if width <= 0 || height <= 0; return 0 end
-    state = _image_states[hwnd]
-    resize!(state.buffer, Int(width) * Int(height) * 4)
-    state.width = width
-    state.height = height
     return 0
 end
 
@@ -129,8 +120,6 @@ function imageWndProc(hwnd::HWND, umsg::UINT, wparam::WPARAM, lparam::LPARAM)::L
             return onImageDestroy(hwnd)
         elseif umsg == WM_PAINT
             return onImagePaint(hwnd)
-        elseif umsg == WM_SIZE
-            return onImageSize(hwnd, LOWORD(lparam), HIWORD(lparam))
         end
         return DefWindowProcW(hwnd, umsg, wparam, lparam)
     catch exc

@@ -2,16 +2,45 @@
 abstract type AbstractElement end
 
 mutable struct Element <: AbstractElement
+    buffer::Vector{UInt8}
+    cache_w::Int32
+    cache_h::Int32
+    _paint::Function
     onPaint::Function
-    Element(onPaint::Function) = new(onPaint)
+    function Element(paint::Function)
+        e = new(UInt8[], Int32(0), Int32(0), paint, (w, h) -> Ptr{Cvoid}(0))
+        e.onPaint = function(w, h)
+            if e.cache_w != w || e.cache_h != h
+                resize!(e.buffer, Int(w) * Int(h) * 4)
+                e.cache_w = w
+                e.cache_h = h
+            end
+            pbits = Ptr{Cvoid}(pointer(e.buffer))
+            e._paint(pbits, w, h)
+            return pbits
+        end
+        return e
+    end
 end
 
 mutable struct Button <: AbstractElement
     label::String
+    buffer::Vector{UInt8}
+    cache_w::Int32
+    cache_h::Int32
     onPaint::Function
     function Button(label::String)
-        b = new(label, (pbits, w, h) -> nothing)
-        b.onPaint = (pbits, w, h) -> paintButton(pbits, w, h, b.label)
+        b = new(label, UInt8[], Int32(0), Int32(0), (w, h) -> Ptr{Cvoid}(0))
+        b.onPaint = function(w, h)
+            if b.cache_w != w || b.cache_h != h
+                resize!(b.buffer, Int(w) * Int(h) * 4)
+                b.cache_w = w
+                b.cache_h = h
+            end
+            pbits = Ptr{Cvoid}(pointer(b.buffer))
+            paintButton(pbits, w, h, b.label)
+            return pbits
+        end
         return b
     end
 end
