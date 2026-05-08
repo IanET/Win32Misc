@@ -49,9 +49,10 @@ _layout = GridLayout(
 mutable struct ImageWindowState
     onPaint::Function
     onClick::Function
+    onResize::Function
 end
 
-ImageWindowState() = ImageWindowState((w, h) -> Ptr{Cvoid}(0), () -> nothing)
+ImageWindowState() = ImageWindowState((w, h) -> Ptr{Cvoid}(0), () -> nothing, (w, h) -> nothing)
 
 const _image_states = Dict{HWND, ImageWindowState}()
 
@@ -114,6 +115,11 @@ function onImagePaint(hwnd)::LRESULT
     return 0
 end
 
+function onImageResize(hwnd, w, h)::LRESULT
+    _image_states[hwnd].onResize(w, h)
+    return 0
+end
+
 function onImageClick(hwnd)::LRESULT
     _image_states[hwnd].onClick()
     return 0
@@ -127,6 +133,8 @@ function imageWndProc(hwnd::HWND, umsg::UINT, wparam::WPARAM, lparam::LPARAM)::L
             return onImageDestroy(hwnd)
         elseif umsg == WM_PAINT
             return onImagePaint(hwnd)
+        elseif umsg == WM_SIZE
+            return onImageResize(hwnd, LOWORD(lparam), HIWORD(lparam))
         elseif umsg == WM_LBUTTONUP
             return onImageClick(hwnd)
         end
@@ -161,18 +169,21 @@ function onCreate(hwnd)
     image_element.onPaint = skiaDraw
     hwndImage = createImageWindow(hwnd, IDC_IMAGE, 0, 0, 100, 100)
     _image_states[hwndImage].onPaint = (w, h) -> paint(image_element, w, h)
+    _image_states[hwndImage].onResize = (w, h) -> resize(image_element, w, h)
 
     ok_button = Button("OK")
     ok_button.onClick = () -> @info "OK Clicked"
     hwndOK = createImageWindow(hwnd, IDC_OK, 0, 0, 100, 100)
     _image_states[hwndOK].onPaint = (w, h) -> paint(ok_button, w, h)
     _image_states[hwndOK].onClick = () -> click(ok_button)
+    _image_states[hwndOK].onResize = (w, h) -> resize(ok_button, w, h)
 
     cancel_button = Button("Cancel")
     cancel_button.onClick = () -> @info "Cancel Clicked"
     hwndCancel = createImageWindow(hwnd, IDC_CANCEL, 0, 0, 100, 100)
     _image_states[hwndCancel].onPaint = (w, h) -> paint(cancel_button, w, h)
     _image_states[hwndCancel].onClick = () -> click(cancel_button)
+    _image_states[hwndCancel].onResize = (w, h) -> resize(cancel_button, w, h)
 
     return 0
 end

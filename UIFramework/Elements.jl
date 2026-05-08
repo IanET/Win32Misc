@@ -2,18 +2,25 @@
 abstract type AbstractElement end
 paint(e::AbstractElement, w::Integer, h::Integer) = e.onPaint(e, w, h)
 click(e::AbstractElement) = e.onClick()
+resize(e::AbstractElement, w::Integer, h::Integer) = e.onResize(w, h)
 
 abstract type AbstractImageCacheElement <: AbstractElement end
 
 @kwdef mutable struct ImageCacheElement <: AbstractImageCacheElement
     imageCache::Matrix{UInt32} = Matrix{UInt32}(undef, 0, 0)
     onPaint::Function = (e, w, h) -> nothing
+    onClick::Function = () -> nothing
+    onResize::Function = (w, h) -> nothing
 end
 
-function paint(e::AbstractImageCacheElement, w::Integer, h::Integer)
+function resize(e::AbstractImageCacheElement, w::Integer, h::Integer)
     if size(e.imageCache) != (w, h)
         e.imageCache = Matrix{UInt32}(undef, w, h)
     end
+    e.onResize(w, h)
+end
+
+function paint(e::AbstractImageCacheElement, w::Integer, h::Integer)
     pbits = Ptr{Cvoid}(pointer(e.imageCache))
     e.onPaint(e, w, h)
     return pbits
@@ -24,6 +31,7 @@ end
     imageCache::Matrix{UInt32} = Matrix{UInt32}(undef, 0, 0)
     onPaint::Function = (b, w, h) -> nothing
     onClick::Function = () -> nothing
+    onResize::Function = (w, h) -> nothing
 end
 
 function Button(label::String)
