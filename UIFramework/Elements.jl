@@ -15,14 +15,19 @@ abstract type AbstractImageCacheElement <: AbstractElement end
     onResize::Function = (w, h) -> nothing
 end
 
-function resize(e::AbstractImageCacheElement, w::Integer, h::Integer)
+function checkcache(e::AbstractImageCacheElement, w::Integer, h::Integer)
     if size(e.imageCache) != (w, h)
         e.imageCache = Matrix{UInt32}(undef, w, h)
     end
+end
+
+function resize(e::AbstractImageCacheElement, w::Integer, h::Integer)
+    checkcache(e, w, h)
     e.onResize(w, h)
 end
 
 function paint(e::AbstractImageCacheElement, w::Integer, h::Integer)
+    checkcache(e, w, h)
     pbits = Ptr{Cvoid}(pointer(e.imageCache))
     e.onPaint(e, w, h)
     return pbits
