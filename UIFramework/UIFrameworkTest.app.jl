@@ -46,23 +46,23 @@ _layout = GridLayout(
     [5, ★"1", 5, 30, 5],   # row heights
     [5, ★"1", 75, 75, 5])  # col widths
 
-mutable struct ImageWindowState
+mutable struct ElementHostState
     onPaint::Function
     onClick::Function
     onResize::Function
 end
 
-ImageWindowState() = ImageWindowState((w, h) -> Ptr{Cvoid}(0), () -> nothing, (w, h) -> nothing)
+ElementHostState() = ElementHostState((w, h) -> Ptr{Cvoid}(0), () -> nothing, (w, h) -> nothing)
 
-const _image_states = Dict{HWND, ImageWindowState}()
+const _hosts = Dict{HWND, ElementHostState}()
 
-function onImageCreate(hwnd)::LRESULT
-    _image_states[hwnd] = ImageWindowState()
+function onElementHostCreate(hwnd)::LRESULT
+    _hosts[hwnd] = ElementHostState()
     return 0
 end
 
-function onImageDestroy(hwnd)::LRESULT
-    delete!(_image_states, hwnd)
+function onElementHostDestroy(hwnd)::LRESULT
+    delete!(_hosts, hwnd)
     return 0
 end
 
@@ -97,8 +97,8 @@ function skiaDraw(e::ImageCacheElement, w, h)
     sk_surface_unref(surface)
 end
 
-function onImagePaint(hwnd)::LRESULT
-    state = _image_states[hwnd]
+function onElementHostPaint(hwnd)::LRESULT
+    state = _hosts[hwnd]
     ps = PAINTSTRUCT() |> Ref
     hdc = BeginPaint(hwnd, ps)
     rcclient = RECT() |> Ref
@@ -115,28 +115,28 @@ function onImagePaint(hwnd)::LRESULT
     return 0
 end
 
-function onImageResize(hwnd, w, h)::LRESULT
-    _image_states[hwnd].onResize(w, h)
+function onElementHostResize(hwnd, w, h)::LRESULT
+    _hosts[hwnd].onResize(w, h)
     return 0
 end
 
-function onImageClick(hwnd)::LRESULT
-    _image_states[hwnd].onClick()
+function onElementHostClick(hwnd)::LRESULT
+    _hosts[hwnd].onClick()
     return 0
 end
 
-function imageWndProc(hwnd::HWND, umsg::UINT, wparam::WPARAM, lparam::LPARAM)::LRESULT
+function elementHostWndProc(hwnd::HWND, umsg::UINT, wparam::WPARAM, lparam::LPARAM)::LRESULT
     try
         if umsg == WM_CREATE
-            return onImageCreate(hwnd)
+            return onElementHostCreate(hwnd)
         elseif umsg == WM_DESTROY
-            return onImageDestroy(hwnd)
+            return onElementHostDestroy(hwnd)
         elseif umsg == WM_PAINT
-            return onImagePaint(hwnd)
+            return onElementHostPaint(hwnd)
         elseif umsg == WM_SIZE
-            return onImageResize(hwnd, LOWORD(lparam), HIWORD(lparam))
+            return onElementHostResize(hwnd, LOWORD(lparam), HIWORD(lparam))
         elseif umsg == WM_LBUTTONUP
-            return onImageClick(hwnd)
+            return onElementHostClick(hwnd)
         end
         return DefWindowProcW(hwnd, umsg, wparam, lparam)
     catch exc
@@ -147,11 +147,11 @@ function imageWndProc(hwnd::HWND, umsg::UINT, wparam::WPARAM, lparam::LPARAM)::L
     return 0
 end
 
-function createImageWindow(parent, id, x, y, w, h)
-    classname = L"ImageClass"
+function createElementHost(parent, id, x, y, w, h)
+    classname = L"ElementHostClass"
     wc = WNDCLASSW(
         CS_HREDRAW | CS_VREDRAW, 
-        @cfunction(imageWndProc, LRESULT, (HWND, UINT, WPARAM, LPARAM)), 
+        @cfunction(elementHostWndProc, LRESULT, (HWND, UINT, WPARAM, LPARAM)), 
         0, 0, 
         HINST, 
         LoadIconW(HINSTANCE(0), IDI_INFORMATION), 
@@ -160,30 +160,30 @@ function createImageWindow(parent, id, x, y, w, h)
         C_NULL, 
         pointer(classname))
     @preserve classname RegisterClassW(Ref(wc))
-    hwnd = CreateWindowExW(DWORD(0), classname, L"Image", WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS, x, y, w, h, parent, HMENU(id), HINST, LPVOID(0))
+    hwnd = CreateWindowExW(DWORD(0), classname, L"ElementHost", WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS, x, y, w, h, parent, HMENU(id), HINST, LPVOID(0))
     return hwnd
 end
 
 function onCreate(hwnd)
     image_element = ImageCacheElement()
     image_element.onPaint = skiaDraw
-    hwndImage = createImageWindow(hwnd, IDC_IMAGE, 0, 0, 100, 100)
-    _image_states[hwndImage].onPaint = (w, h) -> paint(image_element, w, h)
-    _image_states[hwndImage].onResize = (w, h) -> resize(image_element, w, h)
+    hwndImage = createElementHost(hwnd, IDC_IMAGE, 0, 0, 100, 100)
+    _hosts[hwndImage].onPaint = (w, h) -> paint(image_element, w, h)
+    _hosts[hwndImage].onResize = (w, h) -> resize(image_element, w, h)
 
     ok_button = Button("OK")
     ok_button.onClick = () -> @info "OK Clicked"
-    hwndOK = createImageWindow(hwnd, IDC_OK, 0, 0, 100, 100)
-    _image_states[hwndOK].onPaint = (w, h) -> paint(ok_button, w, h)
-    _image_states[hwndOK].onClick = () -> click(ok_button)
-    _image_states[hwndOK].onResize = (w, h) -> resize(ok_button, w, h)
+    hwndOK = createElementHost(hwnd, IDC_OK, 0, 0, 100, 100)
+    _hosts[hwndOK].onPaint = (w, h) -> paint(ok_button, w, h)
+    _hosts[hwndOK].onClick = () -> click(ok_button)
+    _hosts[hwndOK].onResize = (w, h) -> resize(ok_button, w, h)
 
     cancel_button = Button("Cancel")
     cancel_button.onClick = () -> @info "Cancel Clicked"
-    hwndCancel = createImageWindow(hwnd, IDC_CANCEL, 0, 0, 100, 100)
-    _image_states[hwndCancel].onPaint = (w, h) -> paint(cancel_button, w, h)
-    _image_states[hwndCancel].onClick = () -> click(cancel_button)
-    _image_states[hwndCancel].onResize = (w, h) -> resize(cancel_button, w, h)
+    hwndCancel = createElementHost(hwnd, IDC_CANCEL, 0, 0, 100, 100)
+    _hosts[hwndCancel].onPaint = (w, h) -> paint(cancel_button, w, h)
+    _hosts[hwndCancel].onClick = () -> click(cancel_button)
+    _hosts[hwndCancel].onResize = (w, h) -> resize(cancel_button, w, h)
 
     return 0
 end
