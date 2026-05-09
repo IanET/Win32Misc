@@ -11,6 +11,11 @@ onPaint(e::AbstractElement, w, h) = nothing
 # Default behavior, just call the event handlers
 paint(e::AbstractElement, w::Integer, h::Integer) = onPaint(e, w, h)
 
+# Catch unhandled events
+press(e::AbstractElement) = nothing
+click(e::AbstractElement) = nothing
+resize(e::AbstractElement, w::Integer, h::Integer) = nothing
+
 @kwdef mutable struct Element <: AbstractElement
     onPaint::Function = (w, h) -> nothing
     repaint::Function = () -> nothing
@@ -18,6 +23,8 @@ paint(e::AbstractElement, w::Integer, h::Integer) = onPaint(e, w, h)
 end
 onPaint(e::Element, w, h) = e.onPaint(w, h)
 
+# Something that renders in to a pixmap
+# TODO - Maybe make pixmap cache a trait?
 abstract type AbstractPixmapElement <: AbstractElement end
 pixmapElement(e::AbstractPixmapElement) = e
 element(e::AbstractPixmapElement) = pixmapElement(e)
@@ -39,9 +46,8 @@ end
 function paint(e::AbstractPixmapElement, w::Integer, h::Integer)
     el = pixmapElement(e)
     checkcache(el, w, h)
-    pbits = Ptr{Cvoid}(pointer(el.pixmap))
     onPaint(e, w, h)
-    return pbits
+    return el.pixmap
 end
 
 @kwdef mutable struct PixmapElement <: AbstractPixmapElement
@@ -71,9 +77,8 @@ end
 function paint(b::AbstractButton, w::Integer, h::Integer)
     btn = button(b)
     checkcache(btn, w, h)
-    pbits = Ptr{Cvoid}(pointer(btn.pixmap))
     onPaint(b, w, h)
-    return pbits
+    return btn.pixmap
 end
 
 function resize(b::AbstractButton, w::Integer, h::Integer)

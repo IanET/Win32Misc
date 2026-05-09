@@ -16,10 +16,12 @@ function onElementHostPaint(hwnd)::LRESULT
         w = rcclient[].right - rcclient[].left
         h = rcclient[].bottom - rcclient[].top
         if w > 0 && h > 0
-            pbits = paint(e, w, h)
-            bmih = BITMAPINFOHEADER(sizeof(BITMAPINFOHEADER), w, -h, 1, 32, BI_RGB, 0, 0, 0, 0, 0) |> Ref
-            bmpinfo = BITMAPINFO(bmih[], (RGBQUAD(),)) |> Ref
-            SetDIBitsToDevice(hdc, 0, 0, w, h, 0, 0, 0, h, pbits, bmpinfo, DIB_RGB_COLORS)
+            pixmap = paint(e, w, h)
+            if pixmap !== nothing
+                bmih = BITMAPINFOHEADER(sizeof(BITMAPINFOHEADER), w, -h, 1, 32, BI_RGB, 0, 0, 0, 0, 0) |> Ref
+                bmpinfo = BITMAPINFO(bmih[], (RGBQUAD(),)) |> Ref
+                @preserve pixmap SetDIBitsToDevice(hdc, 0, 0, w, h, 0, 0, 0, h, Ptr{Cvoid}(pointer(pixmap)), bmpinfo, DIB_RGB_COLORS)
+            end
         end
     end
     EndPaint(hwnd, ps)
@@ -57,8 +59,7 @@ function elementHostWndProc(hwnd::HWND, umsg::UINT, wparam::WPARAM, lparam::LPAR
         return DefWindowProcW(hwnd, umsg, wparam, lparam)
     catch exc
         @error exc
-        # @info "Exception" catch_backtrace() |> stacktrace
-        throw(exc)
+        # throw(exc)
     end
 
     return 0
