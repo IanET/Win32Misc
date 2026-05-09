@@ -2,12 +2,15 @@
 import .GC.@preserve
 
 abstract type AbstractElement end
-# Default behavior, just call the event handlers
-element(e::AbstractElement) = e
+element(e::AbstractElement) = e # Support composition
+
+# Event handlers that can be overridden by elements
 onClick(e::AbstractElement) = nothing
 onPaint(e::AbstractElement, w, h) = nothing
 onPressed(e::AbstractElement) = nothing
 onResize(e::AbstractElement, w, h) = nothing
+
+# Default behavior, just call the event handlers
 paint(e::AbstractElement, w::Integer, h::Integer) = onPaint(e, w, h)
 click(e::AbstractElement) = onClick(e)
 press(e::AbstractElement) = onPressed(e)
@@ -26,10 +29,6 @@ onPaint(e::Element, w, h) = e.onPaint(w, h)
 abstract type AbstractPixmapElement <: AbstractElement end
 pixmapElement(e::AbstractPixmapElement) = e
 element(e::AbstractPixmapElement) = pixmapElement(e)
-
-# onPaint(::AbstractPixmapElement, w, h) = nothing
-# onPressed(::AbstractPixmapElement) = nothing
-# onResize(::AbstractPixmapElement, w, h) = nothing
 
 function checkcache(e::AbstractPixmapElement, w::Integer, h::Integer)
     el = pixmapElement(e)
