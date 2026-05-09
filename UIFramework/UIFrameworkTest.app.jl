@@ -151,7 +151,8 @@ function appWndProc(hwnd::HWND, umsg::UINT, wparam::WPARAM, lparam::LPARAM)::LRE
         return DefWindowProcW(hwnd, umsg, wparam, lparam)
     catch exc
         @error exc
-        @info "Exception" catch_backtrace() |> stacktrace
+        # @info "Exception" catch_backtrace() |> stacktrace
+        throw(exc)
     end
 
     return 0

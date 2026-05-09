@@ -3,32 +3,25 @@ import .GC.@preserve
 
 abstract type AbstractElement end
 element(e::AbstractElement) = e # Support composition
+repaint(e::AbstractElement) = element(e).repaint() # Ask the host to repaint this element sometime soon
 
 # Event handlers that can be overridden by elements
-onClick(e::AbstractElement) = nothing
 onPaint(e::AbstractElement, w, h) = nothing
-onPressed(e::AbstractElement) = nothing
-onResize(e::AbstractElement, w, h) = nothing
 
 # Default behavior, just call the event handlers
 paint(e::AbstractElement, w::Integer, h::Integer) = onPaint(e, w, h)
-click(e::AbstractElement) = onClick(e)
-press(e::AbstractElement) = onPressed(e)
-resize(e::AbstractElement, w::Integer, h::Integer) = onResize(e, w, h)
-repaint(e::AbstractElement) = element(e).repaint() # Ask the host to repaint this element sometime soon
 
 @kwdef mutable struct Element <: AbstractElement
-    onClick::Function = () -> nothing
     onPaint::Function = (w, h) -> nothing
     repaint::Function = () -> nothing
     userData::Any = nothing
 end
-onClick(e::Element) = e.onClick(e)
 onPaint(e::Element, w, h) = e.onPaint(w, h)
 
 abstract type AbstractPixmapElement <: AbstractElement end
 pixmapElement(e::AbstractPixmapElement) = e
 element(e::AbstractPixmapElement) = pixmapElement(e)
+onResize(e::AbstractPixmapElement, w, h) = nothing
 
 function checkcache(e::AbstractPixmapElement, w::Integer, h::Integer)
     el = pixmapElement(e)
@@ -57,7 +50,10 @@ end
     userData::Any = nothing
 end
 
+# Simplest clickable thing
 abstract type AbstractButton <: AbstractPixmapElement end
+button(b::AbstractButton) = b
+onPressed(b::AbstractButton) = nothing
 
 function press(b::AbstractButton)
     button(b).isPressed = true
