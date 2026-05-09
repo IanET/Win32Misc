@@ -1,17 +1,5 @@
 
-@kwdef mutable struct ElementHostState
-    onPaint::Function = (w, h) -> Ptr{Cvoid}(0)
-    onClick::Function = () -> nothing
-    onPressed::Function = () -> nothing
-    onResize::Function = (w, h) -> nothing
-end
-
-const _hosts = Dict{HWND, ElementHostState}()
-
-function onElementHostCreate(hwnd)::LRESULT
-    _hosts[hwnd] = ElementHostState()
-    return 0
-end
+const _hosts = Dict{HWND, AbstractElement}()
 
 function onElementHostDestroy(hwnd)::LRESULT
     delete!(_hosts, hwnd)
@@ -19,43 +7,43 @@ function onElementHostDestroy(hwnd)::LRESULT
 end
 
 function onElementHostPaint(hwnd)::LRESULT
-    state = _hosts[hwnd]
     ps = PAINTSTRUCT() |> Ref
     hdc = BeginPaint(hwnd, ps)
-    rcclient = RECT() |> Ref
-    GetClientRect(hwnd, rcclient)
-    w = rcclient[].right - rcclient[].left
-    h = rcclient[].bottom - rcclient[].top
-    if w > 0 && h > 0
-        pbits = state.onPaint(w, h)
-        bmih = BITMAPINFOHEADER(sizeof(BITMAPINFOHEADER), w, -h, 1, 32, BI_RGB, 0, 0, 0, 0, 0) |> Ref
-        bmpinfo = BITMAPINFO(bmih[], (RGBQUAD(),)) |> Ref
-        SetDIBitsToDevice(hdc, 0, 0, w, h, 0, 0, 0, h, pbits, bmpinfo, DIB_RGB_COLORS)
+    if haskey(_hosts, hwnd)
+        e = _hosts[hwnd]
+        rcclient = LibBaseTsd.RECT() |> Ref
+        GetClientRect(hwnd, rcclient)
+        w = rcclient[].right - rcclient[].left
+        h = rcclient[].bottom - rcclient[].top
+        if w > 0 && h > 0
+            pbits = paint(e, w, h)
+            bmih = BITMAPINFOHEADER(sizeof(BITMAPINFOHEADER), w, -h, 1, 32, BI_RGB, 0, 0, 0, 0, 0) |> Ref
+            bmpinfo = BITMAPINFO(bmih[], (RGBQUAD(),)) |> Ref
+            SetDIBitsToDevice(hdc, 0, 0, w, h, 0, 0, 0, h, pbits, bmpinfo, DIB_RGB_COLORS)
+        end
     end
     EndPaint(hwnd, ps)
     return 0
 end
 
 function onElementHostResize(hwnd, w, h)::LRESULT
-    _hosts[hwnd].onResize(w, h)
+    haskey(_hosts, hwnd) && resize(_hosts[hwnd], w, h)
     return 0
 end
 
 function onElementHostClick(hwnd)::LRESULT
-    _hosts[hwnd].onClick()
+    haskey(_hosts, hwnd) && click(_hosts[hwnd])
     return 0
 end
 
 function onElementHostPressed(hwnd)::LRESULT
-    _hosts[hwnd].onPressed()
+    haskey(_hosts, hwnd) && press(_hosts[hwnd])
     return 0
 end
 
 function elementHostWndProc(hwnd::HWND, umsg::UINT, wparam::WPARAM, lparam::LPARAM)::LRESULT
     try
-        if umsg == WM_CREATE
-            return onElementHostCreate(hwnd)
-        elseif umsg == WM_DESTROY
+        if umsg == WM_DESTROY
             return onElementHostDestroy(hwnd)
         elseif umsg == WM_PAINT
             return onElementHostPaint(hwnd)
@@ -76,6 +64,7 @@ function elementHostWndProc(hwnd::HWND, umsg::UINT, wparam::WPARAM, lparam::LPAR
 end
 
 function registerElement(hwnd::HWND, e::AbstractElement)
+    _hosts[hwnd] = e
     element(e).repaint = () -> InvalidateRect(hwnd, C_NULL, FALSE)
 end
 

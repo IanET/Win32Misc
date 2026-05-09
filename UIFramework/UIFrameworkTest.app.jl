@@ -87,25 +87,16 @@ function onCreate(hwnd)
     image_element = MyCustomImageElement()
     element(image_element).onPaint = skiaDraw
     hwndImage = createElementHost(hwnd, IDC_IMAGE, 0, 0, 100, 100)
-    _hosts[hwndImage].onPaint = (w, h) -> paint(image_element, w, h)
-    _hosts[hwndImage].onResize = (w, h) -> resize(image_element, w, h)
+    registerElement(hwndImage, image_element)
 
     ok_button = Button("OK")
     ok_button.onClick = () -> @info "OK Clicked"
     hwndOK = createElementHost(hwnd, IDC_OK, 0, 0, 100, 100)
-    _hosts[hwndOK].onPaint   = (w, h) -> paint(ok_button, w, h)
-    _hosts[hwndOK].onPressed = () -> press(ok_button)
-    _hosts[hwndOK].onClick   = () -> click(ok_button)
-    _hosts[hwndOK].onResize  = (w, h) -> resize(ok_button, w, h)
     registerElement(hwndOK, ok_button)
 
     cancel_button = Button("Cancel")
     cancel_button.onClick = () -> @info "Cancel Clicked"
     hwndCancel = createElementHost(hwnd, IDC_CANCEL, 0, 0, 100, 100)
-    _hosts[hwndCancel].onPaint   = (w, h) -> paint(cancel_button, w, h)
-    _hosts[hwndCancel].onPressed = () -> press(cancel_button)
-    _hosts[hwndCancel].onClick   = () -> click(cancel_button)
-    _hosts[hwndCancel].onResize  = (w, h) -> resize(cancel_button, w, h)
     registerElement(hwndCancel, cancel_button)
 
     return 0
