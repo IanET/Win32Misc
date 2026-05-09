@@ -18,7 +18,7 @@ button(b::AbstractButton) = b
 function press(b::AbstractButton)
     btn = button(b)
     btn.isPressed = true
-    btn.onPressed()
+    onPressed(b)
     repaint(b)
 end
 
@@ -42,10 +42,7 @@ end
 @kwdef mutable struct Button <: AbstractButton
     label::String
     imageCache::Matrix{UInt32} = Matrix{UInt32}(undef, 0, 0)
-    onPaint::Function = (b, w, h) -> nothing
     onClick::Function = () -> nothing
-    onPressed::Function = () -> nothing
-    onResize::Function = (w, h) -> nothing
     repaint::Function = () -> nothing
     isPressed::Bool = false
     userData::Any = nothing
@@ -71,11 +68,25 @@ function paint(e::AbstractImageCacheElement, w::Integer, h::Integer)
     return pbits
 end
 
-function Button(label::String)
-    b = Button(label=label)
-    b.onPaint = (b, w, h) -> paintButton(b, w, h)
-    return b
+onPaint(b::AbstractButton, w::Integer, h::Integer) = paintButton(b, w, h)
+onPressed(::AbstractButton) = nothing
+onResize(::AbstractButton, ::Integer, ::Integer) = nothing
+
+function paint(b::AbstractButton, w::Integer, h::Integer)
+    btn = button(b)
+    checkcache(btn, w, h)
+    pbits = Ptr{Cvoid}(pointer(btn.imageCache))
+    onPaint(b, w, h)
+    return pbits
 end
+
+function resize(b::AbstractButton, w::Integer, h::Integer)
+    btn = button(b)
+    checkcache(btn, w, h)
+    onResize(b, w, h)
+end
+
+Button(label::String) = Button(label=label)
 
 function paintButton(b::AbstractButton, w::Integer, h::Integer)
     btn = button(b)
