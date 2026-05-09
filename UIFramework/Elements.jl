@@ -23,8 +23,7 @@ resize(e::AbstractElement, w::Integer, h::Integer) = nothing
 end
 onPaint(e::Element, w, h) = e.onPaint(e, w, h)
 
-# Something that renders in to a pixmap
-# TODO - Maybe make pixmap cache a trait?
+# Something that renders in to a pixmap which is cached
 abstract type AbstractPixmapElement <: AbstractElement end
 pixmapElement(e::AbstractPixmapElement) = e
 element(e::AbstractPixmapElement) = pixmapElement(e)
@@ -70,7 +69,7 @@ end
 function click(b::AbstractButton)
     btn = button(b)
     btn.isPressed = false
-    btn.onClick()
+    btn.onClicked()
     repaint(b)
 end
 
@@ -90,7 +89,7 @@ end
 @kwdef mutable struct Button <: AbstractButton
     label::String
     pixmap::Matrix{UInt32} = Matrix{UInt32}(undef, 0, 0)
-    onClick::Function = () -> nothing
+    onClicked::Function = () -> nothing
     repaint::Function = () -> nothing
     isPressed::Bool = false
     userData::Any = nothing
@@ -98,6 +97,27 @@ end
 button(b::AbstractButton) = b
 
 Button(label::String) = Button(label=label)
+
+onPressed(b::Button) = (b.pixmap = Matrix{UInt32}(undef, 0, 0))
+
+function click(b::Button)
+    b.pixmap = Matrix{UInt32}(undef, 0, 0)
+    b.isPressed = false
+    b.onClicked()
+    repaint(b)
+end
+
+function resize(b::Button, w::Integer, h::Integer)
+    b.pixmap = Matrix{UInt32}(undef, 0, 0)
+    onResize(b, w, h)
+end
+
+function paint(b::Button, w::Integer, h::Integer)
+    size(b.pixmap) == (w, h) && return b.pixmap
+    b.pixmap = Matrix{UInt32}(undef, w, h)
+    onPaint(b, w, h)
+    return b.pixmap
+end
 
 function onPaint(b::Button, w, h)
     btn = button(b)

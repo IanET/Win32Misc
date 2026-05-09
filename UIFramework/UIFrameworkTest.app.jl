@@ -127,11 +127,11 @@ function onCreate(hwnd)
     createElementHost(hwnd, text_element, IDC_TEXT, 0, 0, 100, 100)
 
     ok_button = Button("OK")
-    ok_button.onClick = () -> @info "OK Clicked"
+    ok_button.onClicked = () -> @info "OK Clicked"
     createElementHost(hwnd, ok_button, IDC_OK, 0, 0, 100, 100)
 
     cancel_button = Button("Cancel")
-    cancel_button.onClick = () -> @info "Cancel Clicked"
+    cancel_button.onClicked = () -> @info "Cancel Clicked"
     createElementHost(hwnd, cancel_button, IDC_CANCEL, 0, 0, 100, 100)
 
     return 0
