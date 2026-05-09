@@ -70,7 +70,6 @@ onPaint(::AbstractImageCacheElement, w, h) = nothing
 onPressed(::AbstractImageCacheElement) = nothing
 onResize(::AbstractImageCacheElement, w, h) = nothing
 
-onPaint(b::AbstractButton, w, h) = paintButton(b, w, h)
 onPressed(::AbstractButton) = nothing
 onResize(::AbstractButton, w, h) = nothing
 
@@ -90,7 +89,7 @@ end
 
 Button(label::String) = Button(label=label)
 
-function paintButton(b::AbstractButton, w::Integer, h::Integer)
+function onPaint(b::AbstractButton, w, h)
     btn = button(b)
     cache = btn.imageCache
     label = btn.label
