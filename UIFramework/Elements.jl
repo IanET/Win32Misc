@@ -57,32 +57,31 @@ end
 
 # Simplest clickable thing
 abstract type AbstractButton <: AbstractPixmapElement end
-button(b::AbstractButton) = b
 onPressed(b::AbstractButton) = nothing
 
 function press(b::AbstractButton)
-    button(b).isPressed = true
+    pixmapElement(b).isPressed = true
     onPressed(b)
     repaint(b)
 end
 
 function click(b::AbstractButton)
-    btn = button(b)
-    btn.isPressed = false
-    btn.onClicked()
+    el = pixmapElement(b)
+    el.isPressed = false
+    el.onClicked()
     repaint(b)
 end
 
 function paint(b::AbstractButton, w::Integer, h::Integer)
-    btn = button(b)
-    checkcache(btn, w, h)
+    el = pixmapElement(b)
+    checkcache(el, w, h)
     onPaint(b, w, h)
-    return btn.pixmap
+    return el.pixmap
 end
 
 function resize(b::AbstractButton, w::Integer, h::Integer)
-    btn = button(b)
-    checkcache(btn, w, h)
+    el = pixmapElement(b)
+    checkcache(el, w, h)
     onResize(b, w, h)
 end
 
@@ -94,8 +93,6 @@ end
     isPressed::Bool = false
     userData::Any = nothing
 end
-button(b::AbstractButton) = b
-
 Button(label::String) = Button(label=label)
 
 onPressed(b::Button) = (b.pixmap = Matrix{UInt32}(undef, 0, 0))
@@ -120,14 +117,13 @@ function paint(b::Button, w::Integer, h::Integer)
 end
 
 function onPaint(b::Button, w, h)
-    btn = button(b)
-    cache = btn.pixmap
-    label = btn.label
+    cache = b.pixmap
+    label = b.label
     info = sk_imageinfo_t(C_NULL, w, h, BGRA_8888_SK_COLORTYPE, PREMUL_SK_ALPHATYPE)
     surface = sk_surface_new_raster_direct(Ref(info), cache, w * 4, C_NULL, C_NULL, C_NULL)
     canvas = sk_surface_get_canvas(surface)
 
-    pressed = btn.isPressed
+    pressed = b.isPressed
 
     skpaint = sk_paint_new()
     sk_paint_set_antialias(skpaint, true)
