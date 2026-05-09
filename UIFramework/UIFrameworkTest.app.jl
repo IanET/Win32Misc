@@ -53,6 +53,7 @@ sk_color_set_argb(a, r, g, b) = ((UInt32(a) << 24) | (UInt32(r) << 16) | (UInt32
 @kwdef mutable struct MyCustomPixmapElement <: AbstractPixmapElement
     element::PixmapElement = PixmapElement()
     text::String = "Hello World!"
+    # More private state can go here
 end
 pixmapElement(e::MyCustomPixmapElement) = e.element
 
@@ -80,10 +81,15 @@ function onPaint(outer::MyCustomPixmapElement, w, h)
     sk_font_set_size(font, 24.0)
     @preserve text sk_canvas_draw_simple_text(canvas, pointer(text), sizeof(text), UTF8_SK_TEXT_ENCODING, 10.0, 35.0, font, textpaint)
 
+    sk_font_delete(font)
+    sk_typeface_unref(typeface)
+    sk_fontstyle_delete(fontstyle)
+    sk_paint_delete(textpaint)
     sk_paint_delete(fill)
     sk_surface_unref(surface)
 end
 
+# An example of a simple custom paint for an Element instance
 function element_onPaint(e, w, h)
     pixmap = Matrix{UInt32}(undef, w, h)
     text = e.userData
@@ -105,6 +111,9 @@ function element_onPaint(e, w, h)
     y = (h + metrics[].fCapHeight) / 2f0
     sk_paint_set_color(paint, sk_color_set_argb(0xFF, 0x1A, 0x1A, 0x1A))
     @preserve text sk_canvas_draw_simple_text(canvas, pointer(text), sizeof(text), UTF8_SK_TEXT_ENCODING, 5f0, y, font, paint)
+    sk_font_delete(font)
+    sk_typeface_unref(typeface)
+    sk_fontstyle_delete(fontstyle)
     sk_paint_delete(paint)
     sk_surface_unref(surface)
     return pixmap

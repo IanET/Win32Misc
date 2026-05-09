@@ -109,22 +109,22 @@ function onPaint(b::Button, w, h)
 
     pressed = btn.isPressed
 
-    paint = sk_paint_new()
-    sk_paint_set_antialias(paint, true)
+    skpaint = sk_paint_new()
+    sk_paint_set_antialias(skpaint, true)
 
     bounds = sk_rect_t(0f0, 0f0, Float32(w), Float32(h))
 
     # Fill
     fill_color = pressed ? sk_color_set_argb(0xFF, 0xC8, 0xC8, 0xC8) : sk_color_set_argb(0xFF, 0xE1, 0xE1, 0xE1)
-    sk_paint_set_style(paint, FILL_SK_PAINT_STYLE)
-    sk_paint_set_color(paint, fill_color)
-    sk_canvas_draw_round_rect(canvas, Ref(bounds), 3f0, 3f0, paint)
+    sk_paint_set_style(skpaint, FILL_SK_PAINT_STYLE)
+    sk_paint_set_color(skpaint, fill_color)
+    sk_canvas_draw_round_rect(canvas, Ref(bounds), 3f0, 3f0, skpaint)
 
     # Border
-    sk_paint_set_style(paint, STROKE_SK_PAINT_STYLE)
-    sk_paint_set_stroke_width(paint, 1f0)
-    sk_paint_set_color(paint, sk_color_set_argb(0xFF, 0xAD, 0xAD, 0xAD))
-    sk_canvas_draw_round_rect(canvas, Ref(bounds), 3f0, 3f0, paint)
+    sk_paint_set_style(skpaint, STROKE_SK_PAINT_STYLE)
+    sk_paint_set_stroke_width(skpaint, 1f0)
+    sk_paint_set_color(skpaint, sk_color_set_argb(0xFF, 0xAD, 0xAD, 0xAD))
+    sk_canvas_draw_round_rect(canvas, Ref(bounds), 3f0, 3f0, skpaint)
 
     # Text
     fontstyle = sk_fontstyle_new(SK_FONT_STYLE_NORMAL_WEIGHT, SK_FONT_STYLE_NORMAL_WIDTH, UPRIGHT_SK_FONT_STYLE_SLANT)
@@ -142,10 +142,13 @@ function onPaint(b::Button, w, h)
     x = (w - textwidth) / 2f0 + offset
     y = (h + metrics[].fCapHeight) / 2f0 + offset
 
-    sk_paint_set_style(paint, FILL_SK_PAINT_STYLE)
-    sk_paint_set_color(paint, sk_color_set_argb(0xFF, 0x1A, 0x1A, 0x1A))
-    sk_canvas_draw_simple_text(canvas, pointer(label), sizeof(label), UTF8_SK_TEXT_ENCODING, x, y, font, paint)
+    sk_paint_set_style(skpaint, FILL_SK_PAINT_STYLE)
+    sk_paint_set_color(skpaint, sk_color_set_argb(0xFF, 0x1A, 0x1A, 0x1A))
+    sk_canvas_draw_simple_text(canvas, pointer(label), sizeof(label), UTF8_SK_TEXT_ENCODING, x, y, font, skpaint)
 
-    sk_paint_delete(paint)
+    sk_font_delete(font)
+    sk_typeface_unref(typeface)
+    sk_fontstyle_delete(fontstyle)
+    sk_paint_delete(skpaint)
     sk_surface_unref(surface)
 end
