@@ -2,25 +2,18 @@ using PNGFiles
 using ColorTypes
 using FixedPointNumbers
 
-const W = 32
-const H = 32
-const R = 8   # corner radius
-const B = 1   # border width
-
 n0(v::Integer) = reinterpret(N0f8, UInt8(v))
 
-const FILL   = RGBA{N0f8}(n0(0xe1), n0(0xe1), n0(0xe1), n0(0xff))
-const BORDER = RGBA{N0f8}(n0(0xad), n0(0xad), n0(0xad), n0(0xff))
-const CLEAR  = RGBA{N0f8}(n0(0x00), n0(0x00), n0(0x00), n0(0x00))
+const CLEAR = RGBA{N0f8}(n0(0x00), n0(0x00), n0(0x00), n0(0x00))
 
 # cx, cy are pixel centres in image space (0,0)..(W,H)
 function inside_rrect(cx, cy, x0, y0, x1, y1, r)
     cx >= x0 && cx <= x1 && cy >= y0 && cy <= y1 || return false
     lx = cx - x0; ly = cy - y0
     w  = x1 - x0; h  = y1 - y0
-    if     lx < r && ly < r         ; return (lx - r)^2     + (ly - r)^2     <= r^2
-    elseif lx > w - r && ly < r     ; return (lx - (w - r))^2 + (ly - r)^2   <= r^2
-    elseif lx < r && ly > h - r     ; return (lx - r)^2     + (ly - (h - r))^2 <= r^2
+    if     lx < r && ly < r         ; return (lx - r)^2       + (ly - r)^2       <= r^2
+    elseif lx > w - r && ly < r     ; return (lx - (w - r))^2 + (ly - r)^2       <= r^2
+    elseif lx < r && ly > h - r     ; return (lx - r)^2       + (ly - (h - r))^2 <= r^2
     elseif lx > w - r && ly > h - r ; return (lx - (w - r))^2 + (ly - (h - r))^2 <= r^2
     end
     true
@@ -61,23 +54,31 @@ end
 
 function inject_png_text!(path::String, key::String, value::String)
     data = read(path)
-    # Insert after PNG signature (8) + IHDR chunk (25) = offset 33
     chunk = png_text_chunk(key, value)
     write(path, vcat(data[1:33], chunk, data[34:end]))
 end
 
-# Build pixel data
-img = Matrix{RGBA{N0f8}}(undef, H, W)
-for row in 1:H, col in 1:W
-    cx = col - 0.5; cy = row - 0.5
-    outer = inside_rrect(cx, cy, 0.0, 0.0, Float64(W), Float64(H), Float64(R))
-    inner = inside_rrect(cx, cy, Float64(B), Float64(B), Float64(W-B), Float64(H-B), Float64(R-B))
-    img[row, col] = !outer ? CLEAR : !inner ? BORDER : FILL
+function make_rrect_png(path, W, H, R, B, fill::RGBA{N0f8}, border::RGBA{N0f8})
+    img = Matrix{RGBA{N0f8}}(undef, H, W)
+    for row in 1:H, col in 1:W
+        cx = col - 0.5; cy = row - 0.5
+        outer = inside_rrect(cx, cy, 0.0, 0.0, Float64(W), Float64(H), Float64(R))
+        inner = inside_rrect(cx, cy, Float64(B), Float64(B), Float64(W-B), Float64(H-B), Float64(R-B))
+        img[row, col] = !outer ? CLEAR : !inner ? border : fill
+    end
+    PNGFiles.save(path, img)
+    inject_png_text!(path, "9slice", "$R $R $(W-R) $(H-R)")
+    @info "Written $path  9slice = $R $R $(W-R) $(H-R)"
 end
 
 mkpath("assets")
-outpath = joinpath("assets", "button.png")
-PNGFiles.save(outpath, img)
 
-inject_png_text!(outpath, "9slice", "$R $R $(W-R) $(H-R)")
-@info "Written $outpath  9slice = $R $R $(W-R) $(H-R)"
+make_rrect_png(
+    "assets/button.png", 32, 32, 8, 1,
+    RGBA{N0f8}(n0(0xe1), n0(0xe1), n0(0xe1), n0(0xff)),   # light gray fill
+    RGBA{N0f8}(n0(0xad), n0(0xad), n0(0xad), n0(0xff)))   # gray border
+
+make_rrect_png(
+    "assets/panel.png", 40, 40, 12, 5,
+    RGBA{N0f8}(n0(0xc0), n0(0xd8), n0(0xff), n0(0x80)),   # semi-transparent blue fill
+    RGBA{N0f8}(n0(0x40), n0(0x70), n0(0xc0), n0(0xff)))   # opaque blue border

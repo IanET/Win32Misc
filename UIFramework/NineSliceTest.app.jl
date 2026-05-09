@@ -36,8 +36,8 @@ _layout = GridLayout(
     [10, ★"1", 10])   # col widths
 
 function onCreate(hwnd)
-    nine = NineSliceImage("assets/button.png")
-    nine.background = 0xFFFFFFFF
+    nine = NineSliceImage("assets/panel.png")
+    nine.background = 0xFFFFFFFF  # opaque white background to show the 9-slice area clearly
     createElementHost(hwnd, nine, IDC_NINESLICE, 0, 0, 100, 100)
     return 0
 end
