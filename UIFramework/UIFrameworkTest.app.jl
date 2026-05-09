@@ -48,8 +48,16 @@ _layout = GridLayout(
 
 sk_color_set_argb(a, r, g, b) = ((UInt32(a) << 24) | (UInt32(r) << 16) | (UInt32(g) << 8) | UInt32(b))
 
-function skiaDraw(e::ImageCacheElement, w, h)
+@kwdef mutable struct MyCustomImageElement <: AbstractImageCacheElement
+    element::ImageCacheElement = ImageCacheElement()
+    text::String = "Hello World!"
+end
+element(e::MyCustomImageElement) = e.element
+
+function skiaDraw(outer::MyCustomImageElement, w, h)
+    e = element(outer)
     cache = e.imageCache
+    text = outer.text
     info = sk_imageinfo_t(C_NULL, w, h, BGRA_8888_SK_COLORTYPE, PREMUL_SK_ALPHATYPE)
     surface = sk_surface_new_raster_direct(Ref(info), cache, w * 4, C_NULL, C_NULL, C_NULL)
     canvas = sk_surface_get_canvas(surface)
@@ -64,34 +72,26 @@ function skiaDraw(e::ImageCacheElement, w, h)
 
     textpaint = sk_paint_new()
     sk_paint_set_color(textpaint, sk_color_set_argb(0xFF, 0x00, 0x00, 0x00))
-    # sk_paint_set_antialias(textpaint, true)
-    text = "Hello, World!"
     fontstyle = sk_fontstyle_new(SK_FONT_STYLE_NORMAL_WEIGHT, SK_FONT_STYLE_NORMAL_WIDTH, UPRIGHT_SK_FONT_STYLE_SLANT)
     typeface = sk_typeface_create_from_name("Arial", fontstyle)
     font = sk_font_new()
     sk_font_set_typeface(font, typeface)
     sk_font_set_size(font, 24.0)
-    sk_canvas_draw_simple_text(canvas, pointer(text), sizeof(text), UTF8_SK_TEXT_ENCODING, 10.0, 35.0, font, textpaint)
+    @preserve text sk_canvas_draw_simple_text(canvas, pointer(text), sizeof(text), UTF8_SK_TEXT_ENCODING, 10.0, 35.0, font, textpaint)
 
     sk_paint_delete(fill)
     sk_surface_unref(surface)
 end
 
-# Test custom button by wrapping AbstractButton
-mutable struct MyCustomButton <: AbstractButton
-    button::Button
-end
-button(b::MyCustomButton) = b.button
-
 function onCreate(hwnd)
-    image_element = ImageCacheElement()
-    image_element.onPaint = skiaDraw
+    image_element = MyCustomImageElement()
+    element(image_element).onPaint = skiaDraw
     hwndImage = createElementHost(hwnd, IDC_IMAGE, 0, 0, 100, 100)
     _hosts[hwndImage].onPaint = (w, h) -> paint(image_element, w, h)
     _hosts[hwndImage].onResize = (w, h) -> resize(image_element, w, h)
 
-    ok_button = MyCustomButton(Button("OK"))
-    button(ok_button).onClick = () -> @info "OK Clicked"
+    ok_button = Button("OK")
+    ok_button.onClick = () -> @info "OK Clicked"
     hwndOK = createElementHost(hwnd, IDC_OK, 0, 0, 100, 100)
     _hosts[hwndOK].onPaint = (w, h) -> paint(ok_button, w, h)
     _hosts[hwndOK].onClick = () -> click(ok_button)

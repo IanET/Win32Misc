@@ -3,16 +3,15 @@ import .GC.@preserve
 
 abstract type AbstractElement end
 element(e::AbstractElement) = e
-paint(e::AbstractElement, w::Integer, h::Integer) = (el = element(e); el.onPaint(el, w, h))
+paint(e::AbstractElement, w::Integer, h::Integer) = element(e).onPaint(e, w, h)
 click(e::AbstractElement) = element(e).onClick()
 resize(e::AbstractElement, w::Integer, h::Integer) = element(e).onResize(w, h)
 
 abstract type AbstractImageCacheElement <: AbstractElement end
+imageCacheElement(e::AbstractImageCacheElement) = e
 
 abstract type AbstractButton <: AbstractImageCacheElement end
 button(b::AbstractButton) = b
-element(b::AbstractButton) = button(b)
-click(b::AbstractButton) = button(b).onClick()
 
 @kwdef mutable struct ImageCacheElement <: AbstractImageCacheElement
     imageCache::Matrix{UInt32} = Matrix{UInt32}(undef, 0, 0)
@@ -47,7 +46,7 @@ function paint(e::AbstractImageCacheElement, w::Integer, h::Integer)
     el = element(e)
     checkcache(el, w, h)
     pbits = Ptr{Cvoid}(pointer(el.imageCache))
-    el.onPaint(el, w, h)
+    el.onPaint(e, w, h)
     return pbits
 end
 
