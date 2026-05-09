@@ -55,10 +55,10 @@ sk_color_set_argb(a, r, g, b) = ((UInt32(a) << 24) | (UInt32(r) << 16) | (UInt32
     text::String = "Hello World!"
     # More private state can go here
 end
-pixmapElement(e::MyCustomPixmapElement) = e.element
+element(e::MyCustomPixmapElement) = e.element # compose
 
 function onPaint(outer::MyCustomPixmapElement, w, h)
-    buf = pixmapElement(outer).pixmap
+    buf = element(outer).pixmap
     text = outer.text
     info = sk_imageinfo_t(C_NULL, w, h, BGRA_8888_SK_COLORTYPE, PREMUL_SK_ALPHATYPE)
     surface = sk_surface_new_raster_direct(Ref(info), buf, w * 4, C_NULL, C_NULL, C_NULL)

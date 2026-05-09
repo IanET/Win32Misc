@@ -25,25 +25,23 @@ onPaint(e::Element, w, h) = e.onPaint(e, w, h)
 
 # Something that renders in to a pixmap which is cached
 abstract type AbstractPixmapElement <: AbstractElement end
-pixmapElement(e::AbstractPixmapElement) = e
-element(e::AbstractPixmapElement) = pixmapElement(e)
 onResize(e::AbstractPixmapElement, w, h) = nothing
 
 function checkcache(e::AbstractPixmapElement, w::Integer, h::Integer)
-    el = pixmapElement(e)
+    el = element(e)
     if size(el.pixmap) != (w, h)
         el.pixmap = Matrix{UInt32}(undef, w, h)
     end
 end
 
 function resize(e::AbstractPixmapElement, w::Integer, h::Integer)
-    el = pixmapElement(e)
+    el = element(e)
     checkcache(el, w, h)
     onResize(el, w, h)
 end
 
 function paint(e::AbstractPixmapElement, w::Integer, h::Integer)
-    el = pixmapElement(e)
+    el = element(e)
     checkcache(el, w, h)
     onPaint(e, w, h)
     return el.pixmap
@@ -60,27 +58,27 @@ abstract type AbstractButton <: AbstractPixmapElement end
 onPressed(b::AbstractButton) = nothing
 
 function press(b::AbstractButton)
-    pixmapElement(b).isPressed = true
+    element(b).isPressed = true
     onPressed(b)
     repaint(b)
 end
 
 function click(b::AbstractButton)
-    el = pixmapElement(b)
+    el = element(b)
     el.isPressed = false
     el.onClicked()
     repaint(b)
 end
 
 function paint(b::AbstractButton, w::Integer, h::Integer)
-    el = pixmapElement(b)
+    el = element(b)
     checkcache(el, w, h)
     onPaint(b, w, h)
     return el.pixmap
 end
 
 function resize(b::AbstractButton, w::Integer, h::Integer)
-    el = pixmapElement(b)
+    el = element(b)
     checkcache(el, w, h)
     onResize(b, w, h)
 end
