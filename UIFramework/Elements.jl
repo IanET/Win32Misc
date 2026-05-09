@@ -2,34 +2,50 @@
 import .GC.@preserve
 
 abstract type AbstractElement end
+# Default behavior, just call the event handlers
 element(e::AbstractElement) = e
-paint(e::AbstractElement, w::Integer, h::Integer) = element(e).onPaint(e, w, h)
-click(e::AbstractElement) = element(e).onClick()
-press(e::AbstractElement) = element(e).onPressed()
-resize(e::AbstractElement, w::Integer, h::Integer) = element(e).onResize(w, h)
-repaint(e::AbstractElement) = element(e).repaint()
+onClick(e::AbstractElement) = nothing
+onPaint(e::AbstractElement, w, h) = nothing
+onPressed(e::AbstractElement) = nothing
+onResize(e::AbstractElement, w, h) = nothing
+paint(e::AbstractElement, w::Integer, h::Integer) = onPaint(e, w, h)
+click(e::AbstractElement) = onClick(e)
+press(e::AbstractElement) = onPressed(e)
+resize(e::AbstractElement, w::Integer, h::Integer) = onResize(e, w, h)
+repaint(e::AbstractElement) = element(e).repaint() # Ask the host to repaint this element sometime soon
+
+@kwdef mutable struct Element <: AbstractElement
+    onClick::Function = () -> nothing
+    onPaint::Function = (w, h) -> nothing
+    repaint::Function = () -> nothing
+    userData::Any = nothing
+end
+onClick(e::Element) = e.onClick(e)
+onPaint(e::Element, w, h) = e.onPaint(w, h)
 
 abstract type AbstractPixmapElement <: AbstractElement end
 pixmapElement(e::AbstractPixmapElement) = e
-press(e::AbstractPixmapElement) = onPressed(e)
-onPaint(::AbstractPixmapElement, w, h) = nothing
-onPressed(::AbstractPixmapElement) = nothing
-onResize(::AbstractPixmapElement, w, h) = nothing
+element(e::AbstractPixmapElement) = pixmapElement(e)
+
+# onPaint(::AbstractPixmapElement, w, h) = nothing
+# onPressed(::AbstractPixmapElement) = nothing
+# onResize(::AbstractPixmapElement, w, h) = nothing
 
 function checkcache(e::AbstractPixmapElement, w::Integer, h::Integer)
-    if size(e.pixmap) != (w, h)
-        e.pixmap = Matrix{UInt32}(undef, w, h)
+    el = pixmapElement(e)
+    if size(el.pixmap) != (w, h)
+        el.pixmap = Matrix{UInt32}(undef, w, h)
     end
 end
 
 function resize(e::AbstractPixmapElement, w::Integer, h::Integer)
-    el = element(e)
+    el = pixmapElement(e)
     checkcache(el, w, h)
-    onResize(e, w, h)
+    onResize(el, w, h)
 end
 
 function paint(e::AbstractPixmapElement, w::Integer, h::Integer)
-    el = element(e)
+    el = pixmapElement(e)
     checkcache(el, w, h)
     pbits = Ptr{Cvoid}(pointer(el.pixmap))
     onPaint(e, w, h)
@@ -38,19 +54,14 @@ end
 
 @kwdef mutable struct PixmapElement <: AbstractPixmapElement
     pixmap::Matrix{UInt32} = Matrix{UInt32}(undef, 0, 0)
-    onClick::Function = () -> nothing
     repaint::Function = () -> nothing
     userData::Any = nothing
 end
 
 abstract type AbstractButton <: AbstractPixmapElement end
-button(b::AbstractButton) = b
-onPressed(::AbstractButton) = nothing
-onResize(::AbstractButton, w, h) = nothing
 
 function press(b::AbstractButton)
-    btn = button(b)
-    btn.isPressed = true
+    button(b).isPressed = true
     onPressed(b)
     repaint(b)
 end
@@ -60,15 +71,6 @@ function click(b::AbstractButton)
     btn.isPressed = false
     btn.onClick()
     repaint(b)
-end
-
-@kwdef mutable struct Button <: AbstractButton
-    label::String
-    pixmap::Matrix{UInt32} = Matrix{UInt32}(undef, 0, 0)
-    onClick::Function = () -> nothing
-    repaint::Function = () -> nothing
-    isPressed::Bool = false
-    userData::Any = nothing
 end
 
 function paint(b::AbstractButton, w::Integer, h::Integer)
@@ -85,9 +87,19 @@ function resize(b::AbstractButton, w::Integer, h::Integer)
     onResize(b, w, h)
 end
 
+@kwdef mutable struct Button <: AbstractButton
+    label::String
+    pixmap::Matrix{UInt32} = Matrix{UInt32}(undef, 0, 0)
+    onClick::Function = () -> nothing
+    repaint::Function = () -> nothing
+    isPressed::Bool = false
+    userData::Any = nothing
+end
+button(b::AbstractButton) = b
+
 Button(label::String) = Button(label=label)
 
-function onPaint(b::AbstractButton, w, h)
+function onPaint(b::Button, w, h)
     btn = button(b)
     cache = btn.pixmap
     label = btn.label

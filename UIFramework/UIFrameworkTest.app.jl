@@ -48,15 +48,15 @@ _layout = GridLayout(
 
 sk_color_set_argb(a, r, g, b) = ((UInt32(a) << 24) | (UInt32(r) << 16) | (UInt32(g) << 8) | UInt32(b))
 
-# Example of custom element with custom painting
+# Example of custom element with custom painting using composition
 @kwdef mutable struct MyCustomPixmapElement <: AbstractPixmapElement
     element::PixmapElement = PixmapElement()
     text::String = "Hello World!"
 end
-element(e::MyCustomPixmapElement) = e.element
+pixmapElement(e::MyCustomPixmapElement) = e.element
 
 function onPaint(outer::MyCustomPixmapElement, w, h)
-    buf = element(outer).pixmap
+    buf = pixmapElement(outer).pixmap
     text = outer.text
     info = sk_imageinfo_t(C_NULL, w, h, BGRA_8888_SK_COLORTYPE, PREMUL_SK_ALPHATYPE)
     surface = sk_surface_new_raster_direct(Ref(info), buf, w * 4, C_NULL, C_NULL, C_NULL)
