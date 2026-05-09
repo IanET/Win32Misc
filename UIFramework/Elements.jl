@@ -9,12 +9,44 @@ press(e::AbstractElement) = element(e).onPressed()
 resize(e::AbstractElement, w::Integer, h::Integer) = element(e).onResize(w, h)
 repaint(e::AbstractElement) = element(e).repaint()
 
-abstract type AbstractImageCacheElement <: AbstractElement end
-imageCacheElement(e::AbstractImageCacheElement) = e
-press(e::AbstractImageCacheElement) = onPressed(e)
+abstract type AbstractPixmapElement <: AbstractElement end
+pixmapElement(e::AbstractPixmapElement) = e
+press(e::AbstractPixmapElement) = onPressed(e)
+onPaint(::AbstractPixmapElement, w, h) = nothing
+onPressed(::AbstractPixmapElement) = nothing
+onResize(::AbstractPixmapElement, w, h) = nothing
 
-abstract type AbstractButton <: AbstractImageCacheElement end
+function checkcache(e::AbstractPixmapElement, w::Integer, h::Integer)
+    if size(e.pixmap) != (w, h)
+        e.pixmap = Matrix{UInt32}(undef, w, h)
+    end
+end
+
+function resize(e::AbstractPixmapElement, w::Integer, h::Integer)
+    el = element(e)
+    checkcache(el, w, h)
+    onResize(e, w, h)
+end
+
+function paint(e::AbstractPixmapElement, w::Integer, h::Integer)
+    el = element(e)
+    checkcache(el, w, h)
+    pbits = Ptr{Cvoid}(pointer(el.pixmap))
+    onPaint(e, w, h)
+    return pbits
+end
+
+@kwdef mutable struct PixmapElement <: AbstractPixmapElement
+    pixmap::Matrix{UInt32} = Matrix{UInt32}(undef, 0, 0)
+    onClick::Function = () -> nothing
+    repaint::Function = () -> nothing
+    userData::Any = nothing
+end
+
+abstract type AbstractButton <: AbstractPixmapElement end
 button(b::AbstractButton) = b
+onPressed(::AbstractButton) = nothing
+onResize(::AbstractButton, w, h) = nothing
 
 function press(b::AbstractButton)
     btn = button(b)
@@ -30,53 +62,19 @@ function click(b::AbstractButton)
     repaint(b)
 end
 
-@kwdef mutable struct ImageCacheElement <: AbstractImageCacheElement
-    imageCache::Matrix{UInt32} = Matrix{UInt32}(undef, 0, 0)
-    onClick::Function = () -> nothing
-    repaint::Function = () -> nothing
-    userData::Any = nothing
-end
-
 @kwdef mutable struct Button <: AbstractButton
     label::String
-    imageCache::Matrix{UInt32} = Matrix{UInt32}(undef, 0, 0)
+    pixmap::Matrix{UInt32} = Matrix{UInt32}(undef, 0, 0)
     onClick::Function = () -> nothing
     repaint::Function = () -> nothing
     isPressed::Bool = false
     userData::Any = nothing
 end
 
-function checkcache(e::AbstractImageCacheElement, w::Integer, h::Integer)
-    if size(e.imageCache) != (w, h)
-        e.imageCache = Matrix{UInt32}(undef, w, h)
-    end
-end
-
-function resize(e::AbstractImageCacheElement, w::Integer, h::Integer)
-    el = element(e)
-    checkcache(el, w, h)
-    onResize(e, w, h)
-end
-
-function paint(e::AbstractImageCacheElement, w::Integer, h::Integer)
-    el = element(e)
-    checkcache(el, w, h)
-    pbits = Ptr{Cvoid}(pointer(el.imageCache))
-    onPaint(e, w, h)
-    return pbits
-end
-
-onPaint(::AbstractImageCacheElement, w, h) = nothing
-onPressed(::AbstractImageCacheElement) = nothing
-onResize(::AbstractImageCacheElement, w, h) = nothing
-
-onPressed(::AbstractButton) = nothing
-onResize(::AbstractButton, w, h) = nothing
-
 function paint(b::AbstractButton, w::Integer, h::Integer)
     btn = button(b)
     checkcache(btn, w, h)
-    pbits = Ptr{Cvoid}(pointer(btn.imageCache))
+    pbits = Ptr{Cvoid}(pointer(btn.pixmap))
     onPaint(b, w, h)
     return pbits
 end
@@ -91,7 +89,7 @@ Button(label::String) = Button(label=label)
 
 function onPaint(b::AbstractButton, w, h)
     btn = button(b)
-    cache = btn.imageCache
+    cache = btn.pixmap
     label = btn.label
     info = sk_imageinfo_t(C_NULL, w, h, BGRA_8888_SK_COLORTYPE, PREMUL_SK_ALPHATYPE)
     surface = sk_surface_new_raster_direct(Ref(info), cache, w * 4, C_NULL, C_NULL, C_NULL)

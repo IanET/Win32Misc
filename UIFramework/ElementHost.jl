@@ -68,7 +68,13 @@ function registerElement(hwnd::HWND, e::AbstractElement)
     element(e).repaint = () -> InvalidateRect(hwnd, C_NULL, FALSE)
 end
 
-function createElementHost(parent, id, x, y, w, h)
+function createElementHost(parent::HWND, e::AbstractElement, id::Int, x::Int, y::Int, w::Int, h::Int)
+    hwnd = createElementHost(parent, id, x, y, w, h)
+    registerElement(hwnd, e)
+    return hwnd
+end
+
+function createElementHost(parent::HWND, id::Int, x::Int, y::Int, w::Int, h::Int)
     classname = L"ElementHostClass"
     wc = WNDCLASSW(
         CS_HREDRAW | CS_VREDRAW,

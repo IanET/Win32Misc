@@ -48,18 +48,18 @@ _layout = GridLayout(
 
 sk_color_set_argb(a, r, g, b) = ((UInt32(a) << 24) | (UInt32(r) << 16) | (UInt32(g) << 8) | UInt32(b))
 
-@kwdef mutable struct MyCustomImageElement <: AbstractImageCacheElement
-    element::ImageCacheElement = ImageCacheElement()
+# Example of custom element with custom painting
+@kwdef mutable struct MyCustomPixmapElement <: AbstractPixmapElement
+    element::PixmapElement = PixmapElement()
     text::String = "Hello World!"
 end
-element(e::MyCustomImageElement) = e.element
+element(e::MyCustomPixmapElement) = e.element
 
-function onPaint(outer::MyCustomImageElement, w, h)
-    e = element(outer)
-    cache = e.imageCache
+function onPaint(outer::MyCustomPixmapElement, w, h)
+    buf = element(outer).pixmap
     text = outer.text
     info = sk_imageinfo_t(C_NULL, w, h, BGRA_8888_SK_COLORTYPE, PREMUL_SK_ALPHATYPE)
-    surface = sk_surface_new_raster_direct(Ref(info), cache, w * 4, C_NULL, C_NULL, C_NULL)
+    surface = sk_surface_new_raster_direct(Ref(info), buf, w * 4, C_NULL, C_NULL, C_NULL)
     canvas = sk_surface_get_canvas(surface)
 
     fill = sk_paint_new()
@@ -84,19 +84,16 @@ function onPaint(outer::MyCustomImageElement, w, h)
 end
 
 function onCreate(hwnd)
-    image_element = MyCustomImageElement()
-    hwndImage = createElementHost(hwnd, IDC_IMAGE, 0, 0, 100, 100)
-    registerElement(hwndImage, image_element)
+    image_element = MyCustomPixmapElement()
+    createElementHost(hwnd, image_element, IDC_IMAGE, 0, 0, 100, 100)
 
     ok_button = Button("OK")
     ok_button.onClick = () -> @info "OK Clicked"
-    hwndOK = createElementHost(hwnd, IDC_OK, 0, 0, 100, 100)
-    registerElement(hwndOK, ok_button)
+    createElementHost(hwnd, ok_button, IDC_OK, 0, 0, 100, 100)
 
     cancel_button = Button("Cancel")
     cancel_button.onClick = () -> @info "Cancel Clicked"
-    hwndCancel = createElementHost(hwnd, IDC_CANCEL, 0, 0, 100, 100)
-    registerElement(hwndCancel, cancel_button)
+    createElementHost(hwnd, cancel_button, IDC_CANCEL, 0, 0, 100, 100)
 
     return 0
 end
