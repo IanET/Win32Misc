@@ -274,8 +274,11 @@ const WM_CTLCOLORSTATIC = 0x0138
 
 const MN_GETHMENU = 0x01E1
 
+const WM_LBUTTONDOWN = 0x201
 const WM_LBUTTONUP = 0x202
+const WM_RBUTTONDOWN = 0x204
 const WM_RBUTTONUP = 0x205
+const WM_MBUTTONDOWN = 0x207
 const WM_MBUTTONUP = 0x208
 
 const SW_HIDE = 0
@@ -1119,6 +1122,7 @@ PeekMessageW(lpMsg, hWnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg) = @ccall Use
 ExitProcess(uExitCode) = @ccall Kernel32.ExitProcess(uExitCode::UINT)::Cvoid
 ExtractIconW(hInst, pszExeFileName, nIconIndex) = @ccall Shell32.ExtractIconW(hInst::HINSTANCE, pszExeFileName::LPCWSTR, nIconIndex::UINT)::HICON
 GetClientRect(hWnd, lpRect) = @ccall User32.GetClientRect(hWnd::HWND, lpRect::LPRECT)::BOOL
+InvalidateRect(hWnd, lpRect, bErase) = @ccall User32.InvalidateRect(hWnd::HWND, lpRect::Ptr{RECT}, bErase::BOOL)::BOOL
 SetWindowPos(hWnd, hWndInsertAfter, X, Y, cx, cy, uFlags) = @ccall User32.SetWindowPos(hWnd::HWND, hWndInsertAfter::HWND, X::Cint, Y::Cint, cx::Cint, cy::Cint, uFlags::UINT)::BOOL
 GetDlgItem(hDlg, nIDDlgItem) = @ccall User32.GetDlgItem(hDlg::HWND, nIDDlgItem::Cint)::HWND
 IsDialogMessageW(hDlg, lpMsg) = @ccall User32.IsDialogMessageW(hDlg::HWND, lpMsg::LPMSG)::BOOL
@@ -1155,8 +1159,8 @@ GetClassLongPtrW(hWnd, nIndex) = @ccall User32.GetClassLongPtrW(hWnd::HWND, nInd
 DrawIconEx(hDC, xLeft, yTop, hIcon, cxWidth, cyHeight, istepIfAniCur, hbrFlickerFreeDraw, diFlags) = @ccall User32.DrawIconEx(hDC::HDC, xLeft::Cint, yTop::Cint, hIcon::HICON, cxWidth::Cint, cyHeight::Cint, istepIfAniCur::UINT, hbrFlickerFreeDraw::HBRUSH, diFlags::UINT)::BOOL
 
 # Helpers
-RECT() = RECT(0, 0, 0, 0)
-POINT() = POINT(0, 0)
+LibBaseTsd.RECT() = RECT(0, 0, 0, 0)
+LibBaseTsd.POINT() = POINT(0, 0)
 MSG() = MSG(0, 0, 0, 0, 0, POINT(), 0)
 LOGFONTW() = LOGFONTW( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, zeros(WCHAR, 32) |> Tuple )
 NONCLIENTMETRICSW() = NONCLIENTMETRICSW(sizeof(NONCLIENTMETRICSW), 0, 0, 0, 0, 0, LOGFONTW(), 0, 0, LOGFONTW(), 0, 0, LOGFONTW(), LOGFONTW(), LOGFONTW(), 0)

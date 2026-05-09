@@ -2,6 +2,7 @@
 @kwdef mutable struct ElementHostState
     onPaint::Function = (w, h) -> Ptr{Cvoid}(0)
     onClick::Function = () -> nothing
+    onPressed::Function = () -> nothing
     onResize::Function = (w, h) -> nothing
 end
 
@@ -45,6 +46,11 @@ function onElementHostClick(hwnd)::LRESULT
     return 0
 end
 
+function onElementHostPressed(hwnd)::LRESULT
+    _hosts[hwnd].onPressed()
+    return 0
+end
+
 function elementHostWndProc(hwnd::HWND, umsg::UINT, wparam::WPARAM, lparam::LPARAM)::LRESULT
     try
         if umsg == WM_CREATE
@@ -55,6 +61,8 @@ function elementHostWndProc(hwnd::HWND, umsg::UINT, wparam::WPARAM, lparam::LPAR
             return onElementHostPaint(hwnd)
         elseif umsg == WM_SIZE
             return onElementHostResize(hwnd, LOWORD(lparam), HIWORD(lparam))
+        elseif umsg == WM_LBUTTONDOWN
+            return onElementHostPressed(hwnd)
         elseif umsg == WM_LBUTTONUP
             return onElementHostClick(hwnd)
         end
@@ -65,6 +73,10 @@ function elementHostWndProc(hwnd::HWND, umsg::UINT, wparam::WPARAM, lparam::LPAR
     end
 
     return 0
+end
+
+function registerElement(hwnd::HWND, e::AbstractElement)
+    element(e).repaint = () -> InvalidateRect(hwnd, C_NULL, FALSE)
 end
 
 function createElementHost(parent, id, x, y, w, h)

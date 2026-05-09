@@ -93,16 +93,20 @@ function onCreate(hwnd)
     ok_button = Button("OK")
     ok_button.onClick = () -> @info "OK Clicked"
     hwndOK = createElementHost(hwnd, IDC_OK, 0, 0, 100, 100)
-    _hosts[hwndOK].onPaint = (w, h) -> paint(ok_button, w, h)
-    _hosts[hwndOK].onClick = () -> click(ok_button)
-    _hosts[hwndOK].onResize = (w, h) -> resize(ok_button, w, h)
+    _hosts[hwndOK].onPaint   = (w, h) -> paint(ok_button, w, h)
+    _hosts[hwndOK].onPressed = () -> press(ok_button)
+    _hosts[hwndOK].onClick   = () -> click(ok_button)
+    _hosts[hwndOK].onResize  = (w, h) -> resize(ok_button, w, h)
+    registerElement(hwndOK, ok_button)
 
     cancel_button = Button("Cancel")
     cancel_button.onClick = () -> @info "Cancel Clicked"
     hwndCancel = createElementHost(hwnd, IDC_CANCEL, 0, 0, 100, 100)
-    _hosts[hwndCancel].onPaint = (w, h) -> paint(cancel_button, w, h)
-    _hosts[hwndCancel].onClick = () -> click(cancel_button)
-    _hosts[hwndCancel].onResize = (w, h) -> resize(cancel_button, w, h)
+    _hosts[hwndCancel].onPaint   = (w, h) -> paint(cancel_button, w, h)
+    _hosts[hwndCancel].onPressed = () -> press(cancel_button)
+    _hosts[hwndCancel].onClick   = () -> click(cancel_button)
+    _hosts[hwndCancel].onResize  = (w, h) -> resize(cancel_button, w, h)
+    registerElement(hwndCancel, cancel_button)
 
     return 0
 end
