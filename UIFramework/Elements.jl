@@ -17,11 +17,11 @@ click(e::AbstractElement) = nothing
 resize(e::AbstractElement, w::Integer, h::Integer) = nothing
 
 @kwdef mutable struct Element <: AbstractElement
-    onPaint::Function = (w, h) -> nothing
+    onPaint::Function = (e, w, h) -> nothing
     repaint::Function = () -> nothing
     userData::Any = nothing
 end
-onPaint(e::Element, w, h) = e.onPaint(w, h)
+onPaint(e::Element, w, h) = e.onPaint(e, w, h)
 
 # Something that renders in to a pixmap
 # TODO - Maybe make pixmap cache a trait?
