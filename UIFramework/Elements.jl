@@ -11,6 +11,7 @@ repaint(e::AbstractElement) = element(e).repaint()
 
 abstract type AbstractImageCacheElement <: AbstractElement end
 imageCacheElement(e::AbstractImageCacheElement) = e
+press(e::AbstractImageCacheElement) = onPressed(e)
 
 abstract type AbstractButton <: AbstractImageCacheElement end
 button(b::AbstractButton) = b
@@ -31,10 +32,7 @@ end
 
 @kwdef mutable struct ImageCacheElement <: AbstractImageCacheElement
     imageCache::Matrix{UInt32} = Matrix{UInt32}(undef, 0, 0)
-    onPaint::Function = (e, w, h) -> nothing
     onClick::Function = () -> nothing
-    onPressed::Function = () -> nothing
-    onResize::Function = (w, h) -> nothing
     repaint::Function = () -> nothing
     userData::Any = nothing
 end
@@ -57,20 +55,24 @@ end
 function resize(e::AbstractImageCacheElement, w::Integer, h::Integer)
     el = element(e)
     checkcache(el, w, h)
-    el.onResize(w, h)
+    onResize(e, w, h)
 end
 
 function paint(e::AbstractImageCacheElement, w::Integer, h::Integer)
     el = element(e)
     checkcache(el, w, h)
     pbits = Ptr{Cvoid}(pointer(el.imageCache))
-    el.onPaint(e, w, h)
+    onPaint(e, w, h)
     return pbits
 end
 
-onPaint(b::AbstractButton, w::Integer, h::Integer) = paintButton(b, w, h)
+onPaint(::AbstractImageCacheElement, w, h) = nothing
+onPressed(::AbstractImageCacheElement) = nothing
+onResize(::AbstractImageCacheElement, w, h) = nothing
+
+onPaint(b::AbstractButton, w, h) = paintButton(b, w, h)
 onPressed(::AbstractButton) = nothing
-onResize(::AbstractButton, ::Integer, ::Integer) = nothing
+onResize(::AbstractButton, w, h) = nothing
 
 function paint(b::AbstractButton, w::Integer, h::Integer)
     btn = button(b)

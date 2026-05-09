@@ -54,7 +54,7 @@ sk_color_set_argb(a, r, g, b) = ((UInt32(a) << 24) | (UInt32(r) << 16) | (UInt32
 end
 element(e::MyCustomImageElement) = e.element
 
-function skiaDraw(outer::MyCustomImageElement, w, h)
+function onPaint(outer::MyCustomImageElement, w, h)
     e = element(outer)
     cache = e.imageCache
     text = outer.text
@@ -85,7 +85,6 @@ end
 
 function onCreate(hwnd)
     image_element = MyCustomImageElement()
-    element(image_element).onPaint = skiaDraw
     hwndImage = createElementHost(hwnd, IDC_IMAGE, 0, 0, 100, 100)
     registerElement(hwndImage, image_element)
 
