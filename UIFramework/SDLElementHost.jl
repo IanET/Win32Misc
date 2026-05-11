@@ -195,7 +195,30 @@ end
 
 # ── Event loop ────────────────────────────────────────────────────────────────
 
+# Storage for the live-resize watch callback (SDL_AddEventWatch fires even
+# during the OS resize modal loop, unlike SDL_WaitEvent which is blocked).
+const _watch_host     = Ref{Union{SDLHost, Nothing}}(nothing)
+const _watch_onResize = Ref{Union{Function, Nothing}}(nothing)
+
+function _resize_watch_cb(::Ptr{Cvoid}, event::Ptr{Cvoid})::Cint
+    host = _watch_host[]
+    host === nothing && return 0
+    unsafe_load(Ptr{UInt32}(event)) == SDL_WINDOWEVENT || return 0
+    we = unsafe_load(Ptr{SDL_WindowEvent}(event))
+    we.event == SDL_WINDOWEVENT_SIZE_CHANGED || return 0
+    host.width, host.height = we.data1, we.data2
+    _watch_onResize[](host, we.data1, we.data2)
+    renderAll(host)
+    return 0
+end
+
+const _resize_watch_cfunc = @cfunction(_resize_watch_cb, Cint, (Ptr{Cvoid}, Ptr{Cvoid}))
+
 function sdlEventLoop(host::SDLHost, onResize::Function)
+    _watch_host[]     = host
+    _watch_onResize[] = onResize
+    @ccall libsdl2.SDL_AddEventWatch(_resize_watch_cfunc::Ptr{Cvoid}, C_NULL::Ptr{Cvoid})::Cvoid
+
     ev = new_event()
     while GC.@preserve(ev, @ccall(libsdl2.SDL_WaitEvent(
                 Base.unsafe_convert(Ptr{SDL_EventBuffer}, ev)::Ptr{Cvoid})::Cint)) != 0
@@ -229,4 +252,8 @@ function sdlEventLoop(host::SDLHost, onResize::Function)
             renderAll(host)
         end
     end
+
+    @ccall libsdl2.SDL_DelEventWatch(_resize_watch_cfunc::Ptr{Cvoid}, C_NULL::Ptr{Cvoid})::Cvoid
+    _watch_host[]     = nothing
+    _watch_onResize[] = nothing
 end
