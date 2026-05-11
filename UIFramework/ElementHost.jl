@@ -76,6 +76,17 @@ function createElementHost(parent::HWND, e::AbstractElement, id::Int, x::Int, y:
     return hwnd
 end
 
+function layout(hwnd::HWND, gl::GridLayout)
+    rcparent = LibBaseTsd.RECT() |> Ref
+    GetClientRect(hwnd, rcparent)
+    rc = rcparent[]
+    rects = computeLayout(Int(rc.right - rc.left), Int(rc.bottom - rc.top), gl)
+    for (id, (x, y, w, h)) in rects
+        child = GetDlgItem(hwnd, id)
+        child != HWND(0) && SetWindowPos(child, HWND(0), x, y, w, h, SWP_NOZORDER)
+    end
+end
+
 function createElementHost(parent::HWND, id::Int, x::Int, y::Int, w::Int, h::Int)
     classname = L"ElementHostClass"
     wc = WNDCLASSW(
