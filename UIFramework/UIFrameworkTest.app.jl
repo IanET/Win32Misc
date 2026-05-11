@@ -12,7 +12,7 @@ using .LibSkia
 
 include("Layout.jl")
 include("Elements.jl")
-include("ElementHost.jl")
+include("Win32ElementHost.jl")
 
 # @info "Base"
 import Base.cconvert, .GC.@preserve

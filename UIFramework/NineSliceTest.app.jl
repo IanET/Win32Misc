@@ -10,7 +10,7 @@ using .LibSkia
 
 include("Layout.jl")
 include("Elements.jl")
-include("ElementHost.jl")
+include("Win32ElementHost.jl")
 include("NineSliceImage.jl")
 
 import Base.cconvert, .GC.@preserve
