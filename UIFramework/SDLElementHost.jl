@@ -176,6 +176,7 @@ function renderElement(eh::SDLElementHost)
 end
 
 function renderAll(host::SDLHost)
+    @ccall libsdl2.SDL_SetRenderDrawColor(host.renderer::Ptr{Cvoid}, UInt8(255)::UInt8, UInt8(255)::UInt8, UInt8(255)::UInt8, UInt8(255)::UInt8)::Cint
     @ccall libsdl2.SDL_RenderClear(host.renderer::Ptr{Cvoid})::Cint
     for (_, eh) in _sdl_hosts
         eh.host === host && renderElement(eh)
