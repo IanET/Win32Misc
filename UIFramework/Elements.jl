@@ -85,13 +85,17 @@ end
 
 @kwdef mutable struct Button <: AbstractButton
     label::String
+    bgColor::UInt32     = 0xFFFFFFFF
+    faceColor::UInt32   = 0xFFE1E1E1
+    borderColor::UInt32 = 0xFFADADAD
+    textColor::UInt32   = 0xFF1A1A1A
     pixmap::Matrix{UInt32} = Matrix{UInt32}(undef, 0, 0)
     onClicked::Function = () -> nothing
     repaint::Function = () -> nothing
     isPressed::Bool = false
     userData::Any = nothing
 end
-Button(label::String) = Button(label=label)
+Button(label::String; kw...) = Button(; label=label, kw...)
 
 onPressed(b::Button) = (b.pixmap = Matrix{UInt32}(undef, 0, 0))
 
@@ -109,7 +113,7 @@ end
 
 function paint(b::Button, w::Integer, h::Integer)
     size(b.pixmap) == (w, h) && return b.pixmap
-    b.pixmap = Matrix{UInt32}(undef, w, h)
+    b.pixmap = fill(b.bgColor, w, h)
     onPaint(b, w, h)
     return b.pixmap
 end
@@ -122,23 +126,30 @@ function onPaint(b::Button, w, h)
     canvas = sk_surface_get_canvas(surface)
 
     pressed = b.isPressed
+    m = 2f0  # margin between bgColor and face
 
     skpaint = sk_paint_new()
     sk_paint_set_antialias(skpaint, true)
 
-    bounds = sk_rect_t(0f0, 0f0, Float32(w), Float32(h))
+    face = sk_rect_t(m, m, Float32(w) - m, Float32(h) - m)
 
-    # Fill
-    fill_color = pressed ? sk_color_set_argb(0xFF, 0xC8, 0xC8, 0xC8) : sk_color_set_argb(0xFF, 0xE1, 0xE1, 0xE1)
+    # Face fill: darken ~12% when pressed
+    base = b.faceColor
+    face_color = pressed ?
+        (base & 0xFF000000) |
+        (UInt32(((base >> 16) & 0xFF) * 7 ÷ 8) << 16) |
+        (UInt32(((base >>  8) & 0xFF) * 7 ÷ 8) <<  8) |
+        UInt32(( base        & 0xFF) * 7 ÷ 8) :
+        base
     sk_paint_set_style(skpaint, FILL_SK_PAINT_STYLE)
-    sk_paint_set_color(skpaint, fill_color)
-    sk_canvas_draw_round_rect(canvas, Ref(bounds), 3f0, 3f0, skpaint)
+    sk_paint_set_color(skpaint, face_color)
+    sk_canvas_draw_round_rect(canvas, Ref(face), 3f0, 3f0, skpaint)
 
     # Border
     sk_paint_set_style(skpaint, STROKE_SK_PAINT_STYLE)
     sk_paint_set_stroke_width(skpaint, 1f0)
-    sk_paint_set_color(skpaint, sk_color_set_argb(0xFF, 0xAD, 0xAD, 0xAD))
-    sk_canvas_draw_round_rect(canvas, Ref(bounds), 3f0, 3f0, skpaint)
+    sk_paint_set_color(skpaint, b.borderColor)
+    sk_canvas_draw_round_rect(canvas, Ref(face), 3f0, 3f0, skpaint)
 
     # Text
     fontstyle = sk_fontstyle_new(SK_FONT_STYLE_NORMAL_WEIGHT, SK_FONT_STYLE_NORMAL_WIDTH, UPRIGHT_SK_FONT_STYLE_SLANT)
@@ -157,7 +168,7 @@ function onPaint(b::Button, w, h)
     y = (h + metrics[].fCapHeight) / 2f0 + offset
 
     sk_paint_set_style(skpaint, FILL_SK_PAINT_STYLE)
-    sk_paint_set_color(skpaint, sk_color_set_argb(0xFF, 0x1A, 0x1A, 0x1A))
+    sk_paint_set_color(skpaint, b.textColor)
     sk_canvas_draw_simple_text(canvas, pointer(label), sizeof(label), UTF8_SK_TEXT_ENCODING, x, y, font, skpaint)
 
     sk_font_delete(font)

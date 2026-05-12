@@ -126,11 +126,11 @@ function onCreate(hwnd)
     text_element = Element(onPaint = element_onPaint, userData = "Simple Text Element")
     createElementHost(hwnd, text_element, IDC_TEXT, 0, 0, 100, 100)
 
-    ok_button = Button("OK")
+    ok_button = Button("OK"; bgColor = 0xFFFFFFFF)   # default
     ok_button.onClicked = () -> @info "OK Clicked"
     createElementHost(hwnd, ok_button, IDC_OK, 0, 0, 100, 100)
 
-    cancel_button = Button("Cancel")
+    cancel_button = Button("Cancel"; bgColor = 0xFFFF0000, faceColor = 0xFF00FF00, borderColor = 0xFF0000FF)   # white
     cancel_button.onClicked = () -> @info "Cancel Clicked"
     createElementHost(hwnd, cancel_button, IDC_CANCEL, 0, 0, 100, 100)
 
