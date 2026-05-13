@@ -5,9 +5,9 @@ using CEnum
 # TODO Use artifacts
 
 const LibSkiaSharp = @static if Sys.iswindows()
-    "libSkiaSharp.dll"
+    joinpath(@__DIR__, "..", "UIFramework", "framework", "libSkiaSharp.dll")
 else
-    joinpath(@__DIR__, "..", "UIFramework", "libSkiaSharp.so")
+    joinpath(@__DIR__, "..", "UIFramework", "framework", "libSkiaSharp.so")
 end
 
 const SK_FONT_STYLE_NORMAL_WEIGHT = 400

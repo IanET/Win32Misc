@@ -21,7 +21,7 @@ _layout = GridLayout(
     [10, ★"1", 10])
 
 function onCreate(host::SDLHost)
-    nine = NineSliceImage("assets/panel.png")
+    nine = NineSliceImage(joinpath(@__DIR__, "..", "assets", "panel.png"))
     nine.background = 0xFF000000
     createSDLElementHost(host, nine, IDC_NINESLICE, 10, 10, host.width - 20, host.height - 20)
 end
