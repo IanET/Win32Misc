@@ -120,12 +120,7 @@ function onPaint(e::NineSliceImage, w, h)
     surface = sk_surface_new_raster_direct(Ref(info), buf, w * 4, C_NULL, C_NULL, C_NULL)
     canvas  = sk_surface_get_canvas(surface)
 
-    if e.background >>> 24 != 0
-        bgpaint = sk_paint_new()
-        sk_paint_set_color(bgpaint, e.background)
-        sk_canvas_draw_paint(canvas, bgpaint)
-        sk_paint_delete(bgpaint)
-    end
+    sk_canvas_clear(canvas, e.background)
 
     # Source slice rects
     src_tl = sk_rect_t(0f0,  0f0,  sl,    st)
