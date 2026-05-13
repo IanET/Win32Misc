@@ -1,12 +1,12 @@
 @info "NineSliceTest (SDL2)"
 
-include("../common/LibSkia.jl")
+include("../../common/LibSkia.jl")
 using .LibSkia
 
-include("Layout.jl")
-include("Elements.jl")
-include("SDLElementHost.jl")
-include("NineSliceImage.jl")
+include("../framework/Layout.jl")
+include("../framework/Elements.jl")
+include("../hosts/SDLElementHost.jl")
+include("../framework/NineSliceImage.jl")
 
 import .GC.@preserve
 

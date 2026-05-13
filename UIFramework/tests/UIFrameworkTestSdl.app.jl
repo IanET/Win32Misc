@@ -1,11 +1,11 @@
-@info "UIFrameworkTest (GLFW)"
+@info "UIFrameworkTest (SDL2)"
 
-include("../common/LibSkia.jl")
+include("../../common/LibSkia.jl")
 using .LibSkia
 
-include("Layout.jl")
-include("Elements.jl")
-include("GLFWElementHost.jl")
+include("../framework/Layout.jl")
+include("../framework/Elements.jl")
+include("../hosts/SDLElementHost.jl")
 
 import .GC.@preserve
 
@@ -95,37 +95,37 @@ function element_onPaint(e, w, h)
     return pixmap
 end
 
-function onCreate(host::GLFWHost)
+function onCreate(host::SDLHost)
     image_element = MyCustomPixmapElement()
-    createGLFWElementHost(host, image_element, IDC_IMAGE, 0, 0, 100, 100)
+    createSDLElementHost(host, image_element, IDC_IMAGE, 0, 0, 100, 100)
 
     text_element = Element(onPaint = element_onPaint, userData = "Simple Text Element")
-    createGLFWElementHost(host, text_element, IDC_TEXT, 0, 0, 100, 100)
+    createSDLElementHost(host, text_element, IDC_TEXT, 0, 0, 100, 100)
 
     ok_button = Button("OK")
     ok_button.onClicked = () -> @info "OK Clicked"
-    createGLFWElementHost(host, ok_button, IDC_OK, 0, 0, 100, 100)
+    createSDLElementHost(host, ok_button, IDC_OK, 0, 0, 100, 100)
 
     cancel_button = Button("Cancel")
     cancel_button.onClicked = () -> @info "Cancel Clicked"
-    createGLFWElementHost(host, cancel_button, IDC_CANCEL, 0, 0, 100, 100)
+    createSDLElementHost(host, cancel_button, IDC_CANCEL, 0, 0, 100, 100)
 end
 
-function onResize(host::GLFWHost, w::Int32, h::Int32)
+function onResize(host::SDLHost, w::Int32, h::Int32)
     w > 0 && h > 0 && layout(host, _layout)
 end
 
 function main()
     @info "UI Begin"
 
-    host = createGLFWHost("UIFramework Test", 512, 512)
+    host = createSDLHost("UIFramework Test", 512, 512)
     onCreate(host)
     layout(host, _layout)
     renderAll(host)
 
-    glfwEventLoop(host, onResize)
+    sdlEventLoop(host, onResize)
 
-    destroyGLFWHost(host)
+    destroySDLHost(host)
     @info "UI End"
 end
 

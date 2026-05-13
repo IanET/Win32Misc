@@ -1,11 +1,11 @@
 @info "UIFrameworkTest (HTTP)"
 
-include("../common/LibSkia.jl")
+include("../../common/LibSkia.jl")
 using .LibSkia
 
-include("Layout.jl")
-include("Elements.jl")
-include("HTTPElementHost.jl")
+include("../framework/Layout.jl")
+include("../framework/Elements.jl")
+include("../hosts/HTTPElementHost.jl")
 
 import .GC.@preserve
 

@@ -1,17 +1,17 @@
 @info "NineSliceTest"
 using LibBaseTsd
 
-include("../common/Win32.jl")
+include("../../common/Win32.jl")
 using .W32
 import .W32: TRUE, FALSE
 
-include("../common/LibSkia.jl")
+include("../../common/LibSkia.jl")
 using .LibSkia
 
-include("Layout.jl")
-include("Elements.jl")
-include("Win32ElementHost.jl")
-include("NineSliceImage.jl")
+include("../framework/Layout.jl")
+include("../framework/Elements.jl")
+include("../hosts/Win32ElementHost.jl")
+include("../framework/NineSliceImage.jl")
 
 import Base.cconvert, .GC.@preserve
 

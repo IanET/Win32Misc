@@ -2,17 +2,17 @@
 using LibBaseTsd
 
 # @info "Win32"
-include("../common/Win32.jl")
+include("../../common/Win32.jl")
 using .W32
 import .W32: TRUE, FALSE
 
 # @info "LibSkia"
-include("../common/LibSkia.jl")
+include("../../common/LibSkia.jl")
 using .LibSkia
 
-include("Layout.jl")
-include("Elements.jl")
-include("Win32ElementHost.jl")
+include("../framework/Layout.jl")
+include("../framework/Elements.jl")
+include("../hosts/Win32ElementHost.jl")
 
 # @info "Base"
 import Base.cconvert, .GC.@preserve
