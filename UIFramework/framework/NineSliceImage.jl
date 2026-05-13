@@ -78,12 +78,14 @@ function _tile_placements(dst0::Float32, dst1::Float32, tile_sz::Float32, mode::
         return [(dst0 + i * tw, dst0 + (i + 1) * tw) for i in 0:n-1]
     elseif mode == Space
         n = max(1, floor(Int, dlen / tile_sz))
-        gap = n > 1 ? (dlen - n * tile_sz) / (n - 1) : 0f0
-        step = tile_sz + gap
-        return [(dst0 + i * step, dst0 + i * step + tile_sz) for i in 0:n-1]
-    else  # Repeat
+        gap      = (dlen - n * tile_sz) / n  # gap between tiles (= 2× edge margin)
+        half_gap = gap / 2f0
+        step     = tile_sz + gap
+        return [(dst0 + half_gap + i * step, dst0 + half_gap + i * step + tile_sz) for i in 0:n-1]
+    else  # Repeat — centre tiles so overflow is clipped equally at both edges
         n = max(1, ceil(Int, dlen / tile_sz))
-        return [(dst0 + i * tile_sz, dst0 + (i + 1) * tile_sz) for i in 0:n-1]
+        offset = (dlen - n * tile_sz) / 2f0
+        return [(dst0 + offset + i * tile_sz, dst0 + offset + (i + 1) * tile_sz) for i in 0:n-1]
     end
 end
 
