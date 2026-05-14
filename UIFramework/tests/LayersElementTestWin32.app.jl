@@ -36,11 +36,11 @@ flush_ws() = SetProcessWorkingSetSize(GetCurrentProcess(), size_t(-1), size_t(-1
 #  └──────────────────────────────────────────────┘
 _layout = GridLayout(
     [
-        GAP  GAP          GAP  GAP          GAP  GAP         GAP
-        GAP  IDC_COLOR    GAP  IDC_NSLICE   GAP  IDC_IMAGE   GAP
-        GAP  GAP          GAP  GAP          GAP  GAP         GAP
-        GAP  IDC_LABEL    GAP  IDC_LABEL    GAP  IDC_LABEL   GAP
-        GAP  GAP          GAP  GAP          GAP  GAP         GAP
+        GAP  GAP          GAP       GAP          GAP        GAP         GAP
+        GAP  IDC_COLOR    GAP       IDC_NSLICE   GAP        IDC_IMAGE   GAP
+        GAP  GAP          GAP       GAP          GAP        GAP         GAP
+        GAP  IDC_LABEL    IDC_LABEL IDC_LABEL    IDC_LABEL  IDC_LABEL   GAP
+        GAP  GAP          GAP       GAP          GAP        GAP         GAP
     ],
     [10, ★"1", 10, 30, 10],
     [10, ★"1", 10, ★"1", 10, ★"1", 10])
