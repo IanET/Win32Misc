@@ -71,7 +71,30 @@ function make_rrect_png(path, W, H, R, B, fill::RGBA{N0f8}, border::RGBA{N0f8})
     @info "Written $path  9slice = $R $R $(W-R) $(H-R)"
 end
 
+function make_diamonds_png(path, W, H, border)
+    img = Matrix{RGBA{N0f8}}(undef, H, W)
+    fill_c   = RGBA{N0f8}(n0(0xe8), n0(0xf0), n0(0xff), n0(0xff))  # pale blue center
+    border_c = RGBA{N0f8}(n0(0x20), n0(0x60), n0(0xc0), n0(0xff))  # blue diamond
+    bg_c     = RGBA{N0f8}(n0(0xd0), n0(0xe4), n0(0xff), n0(0xff))  # lighter blue bg
+    tile     = border  # one diamond per border width
+    for row in 1:H, col in 1:W
+        in_center = col > border && col <= W - border && row > border && row <= H - border
+        if in_center
+            img[row, col] = fill_c
+        else
+            # diamond pattern: |dx| + |dy| < half_tile
+            dx = (col - 1) % tile - tile ÷ 2
+            dy = (row - 1) % tile - tile ÷ 2
+            img[row, col] = (abs(dx) + abs(dy)) < tile ÷ 2 ? border_c : bg_c
+        end
+    end
+    PNGFiles.save(path, img)
+    @info "Written $path  (no 9slice metadata — border must be supplied by caller)"
+end
+
 mkpath("assets")
+
+make_diamonds_png("assets/border-diamonds.png", 120, 120, 30)
 
 make_rrect_png(
     "assets/button.png", 32, 32, 8, 1,
