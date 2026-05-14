@@ -63,7 +63,7 @@ function _png_to_skimage(img)
     @preserve pixels return sk_image_new_raster_copy(Ref(info), pixels, W * 4)
 end
 
-const _SAMPLING = Ref(sk_sampling_options_t(0, false, sk_cubic_resampler_t(0f0, 0f0), NEAREST_SK_FILTER_MODE, NONE_SK_MIPMAP_MODE))
+const _SAMPLING = Ref(sk_sampling_options_t(0, false, sk_cubic_resampler_t(0f0, 0f0), LINEAR_SK_FILTER_MODE, NONE_SK_MIPMAP_MODE))
 
 # Returns a list of (tile_start, tile_end) positions along one axis.
 # dst0/dst1: destination range. tile_sz: natural size of the source tile.
