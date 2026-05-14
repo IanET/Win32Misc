@@ -12,9 +12,10 @@ struct ColorLayer <: AbstractLayer
     color::UInt32
     state_mask::ButtonState
     exclude_mask::ButtonState
+    blend_mode::sk_blendmode_t
 end
-ColorLayer(color::UInt32; state_mask = MASK_ALWAYS, exclude_mask = ButtonState(0)) =
-    ColorLayer(color, state_mask, exclude_mask)
+ColorLayer(color::UInt32; state_mask = MASK_ALWAYS, exclude_mask = ButtonState(0), blend_mode = SRCOVER_SK_BLENDMODE) =
+    ColorLayer(color, state_mask, exclude_mask, blend_mode)
 
 struct ImageLayer <: AbstractLayer
     image::Ptr{Cvoid}
@@ -87,6 +88,7 @@ end
 function _paint_layer(canvas, layer::ColorLayer, ::Integer, ::Integer)
     paint = sk_paint_new()
     sk_paint_set_color(paint, layer.color)
+    sk_paint_set_blendmode(paint, layer.blend_mode)
     sk_canvas_draw_paint(canvas, paint)
     sk_paint_delete(paint)
 end
