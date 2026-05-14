@@ -63,9 +63,8 @@ function onCreate(hwnd)
         NineSliceLayer(panel_path),
         ColorLayer(0x18FF0000; state_mask = BS_HOVERED, blend_mode = SRCATOP_SK_BLENDMODE),
         ColorLayer(0x28000000; state_mask = BS_PRESSED, blend_mode = SRCATOP_SK_BLENDMODE),
-        ColorLayer(0xFFFFFFFF; blend_mode = DSTOVER_SK_BLENDMODE),
         TextLayer("Nine-Slice"; color = 0xFF1A3A6A),
-    ])
+    ]; bgcolor = 0xFFFFFFFF)
     createElementHost(hwnd, nslice_btn, IDC_NSLICE, 0, 0, 100, 100)
 
     # 3. Image layer with hover/normal text swap

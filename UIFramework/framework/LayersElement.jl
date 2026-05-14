@@ -57,6 +57,7 @@ TextLayer(text::String; kw...) = TextLayer(; text, kw...)
     element::PixmapElement        = PixmapElement()
     layers::Vector{AbstractLayer} = AbstractLayer[]
     state::ButtonState            = BS_NORMAL
+    bgcolor::UInt32      = 0x00000000
 end
 element(e::LayersElement) = e.element
 
@@ -79,6 +80,13 @@ function onPaint(e::LayersElement, w, h)
     sk_canvas_clear(canvas, 0x00000000)
     for layer in e.layers
         _layer_visible(e.state, layer) && _paint_layer(canvas, layer, w, h)
+    end
+    if e.bgcolor != 0x00000000
+        paint = sk_paint_new()
+        sk_paint_set_color(paint, e.bgcolor)
+        sk_paint_set_blendmode(paint, DSTOVER_SK_BLENDMODE)
+        sk_canvas_draw_paint(canvas, paint)
+        sk_paint_delete(paint)
     end
     sk_surface_unref(surface)
 end
