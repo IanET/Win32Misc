@@ -1,8 +1,8 @@
 
 # Requires NineSliceImage.jl to be included first.
 
-const MASK_ALWAYS  = ButtonState(0x00)  # layer always visible
-const MASK_NORMAL  = ButtonState(0xFF)  # layer visible only when state == BS_NORMAL
+const MASK_ALWAYS = ButtonState(0x00)  # layer always visible
+const MASK_NORMAL = ButtonState(0xFF)  # layer visible only when state == BS_NORMAL
 
 abstract type AbstractLayer end
 
@@ -11,15 +11,18 @@ abstract type AbstractLayer end
 struct ColorLayer <: AbstractLayer
     color::UInt32
     state_mask::ButtonState
+    exclude_mask::ButtonState
 end
-ColorLayer(color::UInt32; state_mask = MASK_ALWAYS) = ColorLayer(color, state_mask)
+ColorLayer(color::UInt32; state_mask = MASK_ALWAYS, exclude_mask = ButtonState(0)) =
+    ColorLayer(color, state_mask, exclude_mask)
 
 struct ImageLayer <: AbstractLayer
     image::Ptr{Cvoid}
     state_mask::ButtonState
+    exclude_mask::ButtonState
 end
-function ImageLayer(path::String; state_mask = MASK_ALWAYS)
-    ImageLayer(_png_to_skimage(PNGFiles.load(path)), state_mask)
+function ImageLayer(path::String; state_mask = MASK_ALWAYS, exclude_mask = ButtonState(0))
+    ImageLayer(_png_to_skimage(PNGFiles.load(path)), state_mask, exclude_mask)
 end
 
 struct NineSliceLayer <: AbstractLayer
@@ -28,19 +31,22 @@ struct NineSliceLayer <: AbstractLayer
     repeat_h::BorderRepeat
     repeat_v::BorderRepeat
     state_mask::ButtonState
+    exclude_mask::ButtonState
 end
-function NineSliceLayer(path::String; border = nothing, repeat_h = Stretch, repeat_v = Stretch, state_mask = MASK_ALWAYS)
+function NineSliceLayer(path::String; border = nothing, repeat_h = Stretch, repeat_v = Stretch,
+                        state_mask = MASK_ALWAYS, exclude_mask = ButtonState(0))
     metadata = _png_read_9slice(path)
     center   = something(border, metadata)  # errors if neither provided
-    NineSliceLayer(_png_to_skimage(PNGFiles.load(path)), center, repeat_h, repeat_v, state_mask)
+    NineSliceLayer(_png_to_skimage(PNGFiles.load(path)), center, repeat_h, repeat_v, state_mask, exclude_mask)
 end
 
 @kwdef struct TextLayer <: AbstractLayer
     text::String
-    color::UInt32           = 0xFF000000
-    font_name::String       = "Segoe UI"
-    font_size::Float32      = 13f0
-    state_mask::ButtonState = MASK_ALWAYS
+    color::UInt32            = 0xFF000000
+    font_name::String        = "Segoe UI"
+    font_size::Float32       = 13f0
+    state_mask::ButtonState  = MASK_ALWAYS
+    exclude_mask::ButtonState = ButtonState(0)
 end
 TextLayer(text::String; kw...) = TextLayer(; text, kw...)
 
@@ -58,9 +64,11 @@ unhover(e::LayersElement) = (e.state &= ~BS_HOVERED; repaint(e))
 press(e::LayersElement)   = (e.state |= BS_PRESSED;  repaint(e))
 click(e::LayersElement)   = (e.state &= ~BS_PRESSED; repaint(e))
 
-_layer_visible(state, mask) =
-    mask == MASK_ALWAYS ||
-    (mask == MASK_NORMAL ? state == BS_NORMAL : state & mask != 0)
+function _layer_visible(state, layer)
+    mask = layer.state_mask
+    mask == MASK_NORMAL && return state == BS_NORMAL
+    (mask == MASK_ALWAYS || state & mask != 0) && state & layer.exclude_mask == 0
+end
 
 function onPaint(e::LayersElement, w, h)
     buf     = element(e).pixmap
@@ -69,7 +77,7 @@ function onPaint(e::LayersElement, w, h)
     canvas  = sk_surface_get_canvas(surface)
     sk_canvas_clear(canvas, 0x00000000)
     for layer in e.layers
-        _layer_visible(e.state, layer.state_mask) && _paint_layer(canvas, layer, w, h)
+        _layer_visible(e.state, layer) && _paint_layer(canvas, layer, w, h)
     end
     sk_surface_unref(surface)
 end

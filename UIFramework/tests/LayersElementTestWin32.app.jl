@@ -72,7 +72,7 @@ function onCreate(hwnd)
     image_btn = LayersElement(layers = AbstractLayer[
         ImageLayer(button_path),
         TextLayer("Normal";  color = 0xFF1A1A1A, state_mask = MASK_NORMAL),
-        TextLayer("Hovered"; color = 0xFF0040C0, state_mask = BS_HOVERED),
+        TextLayer("Hovered"; color = 0xFF0040C0, state_mask = BS_HOVERED, exclude_mask = BS_PRESSED),
         TextLayer("Pressed"; color = 0xFF800000, state_mask = BS_PRESSED),
     ])
     createElementHost(hwnd, image_btn, IDC_IMAGE, 0, 0, 100, 100)
