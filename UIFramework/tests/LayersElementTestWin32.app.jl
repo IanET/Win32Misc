@@ -62,7 +62,7 @@ function onCreate(hwnd)
     nslice_btn = LayersElement(layers = AbstractLayer[
         NineSliceLayer(panel_path),
         ColorLayer(0x18FF0000; state_mask = BS_HOVERED, blend_mode = SRCATOP_SK_BLENDMODE),
-        ColorLayer(0x28000000; state_mask = BS_PRESSED, blend_mode = SRCATOP_SK_BLENDMODE),
+        ColorLayer(0xFFFFA0A0; state_mask = BS_PRESSED, blend_mode = SRCATOP_SK_BLENDMODE),
         TextLayer("Nine-Slice"; color = 0xFF1A3A6A),
     ]; bgcolor = 0xFFFFFFFF)
     createElementHost(hwnd, nslice_btn, IDC_NSLICE, 0, 0, 100, 100)
@@ -70,7 +70,7 @@ function onCreate(hwnd)
     # 3. Image layer with hover/normal text swap
     image_btn = LayersElement(layers = AbstractLayer[
         ImageLayer(button_path),
-        TextLayer("Normal";  color = 0xFF1A1A1A, state_mask = MASK_NORMAL),
+        TextLayer("Normal Image";  color = 0xFF1A1A1A, state_mask = MASK_NORMAL),
         TextLayer("Hovered"; color = 0xFF0040C0, state_mask = BS_HOVERED, exclude_mask = BS_PRESSED),
         TextLayer("Pressed"; color = 0xFF800000, state_mask = BS_PRESSED),
     ])
