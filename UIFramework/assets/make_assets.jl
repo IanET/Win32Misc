@@ -103,5 +103,5 @@ make_rrect_png(
 
 make_rrect_png(
     "assets/panel.png", 40, 40, 12, 5,
-    RGBA{N0f8}(n0(0xc0), n0(0xd8), n0(0xff), n0(0x80)),   # semi-transparent blue fill
+    RGBA{N0f8}(n0(0xc0), n0(0xd8), n0(0xff), n0(0xff)),   # opaque blue fill
     RGBA{N0f8}(n0(0x40), n0(0x70), n0(0xc0), n0(0xff)))   # opaque blue border
