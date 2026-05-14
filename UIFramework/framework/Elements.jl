@@ -12,9 +12,11 @@ onPaint(e::AbstractElement, w, h) = nothing
 paint(e::AbstractElement, w::Integer, h::Integer) = onPaint(e, w, h)
 
 # Catch unhandled events
-press(e::AbstractElement) = nothing
-click(e::AbstractElement) = nothing
-resize(e::AbstractElement, w::Integer, h::Integer) = nothing
+press(::AbstractElement)                    = nothing
+click(::AbstractElement)                    = nothing
+hover(::AbstractElement)                    = nothing
+unhover(::AbstractElement)                  = nothing
+resize(::AbstractElement, w::Integer, h::Integer) = nothing
 
 @kwdef mutable struct Element <: AbstractElement
     onPaint::Function = (e, w, h) -> nothing
@@ -55,17 +57,23 @@ end
 
 # Simplest clickable thing
 abstract type AbstractButton <: AbstractPixmapElement end
-onPressed(b::AbstractButton) = nothing
+
+const ButtonState = UInt8
+const BS_NORMAL  = ButtonState(0x00)
+const BS_HOVERED = ButtonState(0x01)
+const BS_PRESSED = ButtonState(0x02)
+
+onPressed(::AbstractButton) = nothing
 
 function press(b::AbstractButton)
-    element(b).isPressed = true
+    element(b).state |= BS_PRESSED
     onPressed(b)
     repaint(b)
 end
 
 function click(b::AbstractButton)
     el = element(b)
-    el.isPressed = false
+    el.state &= ~BS_PRESSED
     el.onClicked()
     repaint(b)
 end
@@ -92,16 +100,30 @@ end
     pixmap::Matrix{UInt32} = Matrix{UInt32}(undef, 0, 0)
     onClicked::Function = () -> nothing
     repaint::Function = () -> nothing
-    isPressed::Bool = false
+    state::ButtonState = BS_NORMAL
     userData::Any = nothing
 end
 Button(label::String; kw...) = Button(; label=label, kw...)
 
-onPressed(b::Button) = (b.pixmap = Matrix{UInt32}(undef, 0, 0))
+_invalidate(b::Button) = (b.pixmap = Matrix{UInt32}(undef, 0, 0))
+
+onPressed(b::Button) = _invalidate(b)
+
+function hover(b::Button)
+    b.state |= BS_HOVERED
+    _invalidate(b)
+    repaint(b)
+end
+
+function unhover(b::Button)
+    b.state &= ~BS_HOVERED
+    _invalidate(b)
+    repaint(b)
+end
 
 function click(b::Button)
-    b.pixmap = Matrix{UInt32}(undef, 0, 0)
-    b.isPressed = false
+    b.state &= ~BS_PRESSED
+    _invalidate(b)
     b.onClicked()
     repaint(b)
 end
@@ -125,7 +147,8 @@ function onPaint(b::Button, w, h)
     surface = sk_surface_new_raster_direct(Ref(info), cache, w * 4, C_NULL, C_NULL, C_NULL)
     canvas = sk_surface_get_canvas(surface)
 
-    pressed = b.isPressed
+    pressed = b.state & BS_PRESSED != 0
+    hovered = b.state & BS_HOVERED != 0
     m = 2f0  # margin between bgColor and face
 
     skpaint = sk_paint_new()
@@ -133,14 +156,14 @@ function onPaint(b::Button, w, h)
 
     face = sk_rect_t(m, m, Float32(w) - m, Float32(h) - m)
 
-    # Face fill: darken ~12% when pressed
+    # Face fill: darken ~12% when pressed, lighten ~6% when hovered
+    _ch(c, n, d) = UInt32(min(0xFF, UInt32((c >> 0) & 0xFF) * n ÷ d))
+    _adj(base, n, d) = (base & 0xFF000000) |
+        (_ch(base >> 16, n, d) << 16) |
+        (_ch(base >>  8, n, d) <<  8) |
+         _ch(base,       n, d)
     base = b.faceColor
-    face_color = pressed ?
-        (base & 0xFF000000) |
-        (UInt32(((base >> 16) & 0xFF) * 7 ÷ 8) << 16) |
-        (UInt32(((base >>  8) & 0xFF) * 7 ÷ 8) <<  8) |
-        UInt32(( base        & 0xFF) * 7 ÷ 8) :
-        base
+    face_color = pressed ? _adj(base, 7, 8) : hovered ? _adj(base, 17, 16) : base
     sk_paint_set_style(skpaint, FILL_SK_PAINT_STYLE)
     sk_paint_set_color(skpaint, face_color)
     sk_canvas_draw_round_rect(canvas, Ref(face), 3f0, 3f0, skpaint)

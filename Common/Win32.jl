@@ -274,12 +274,26 @@ const WM_CTLCOLORSTATIC = 0x0138
 
 const MN_GETHMENU = 0x01E1
 
+const WM_MOUSEMOVE   = 0x200
 const WM_LBUTTONDOWN = 0x201
-const WM_LBUTTONUP = 0x202
+const WM_LBUTTONUP   = 0x202
 const WM_RBUTTONDOWN = 0x204
 const WM_RBUTTONUP = 0x205
 const WM_MBUTTONDOWN = 0x207
-const WM_MBUTTONUP = 0x208
+const WM_MBUTTONUP  = 0x208
+const WM_MOUSELEAVE = 0x02A3
+
+const TME_LEAVE = DWORD(0x00000002)
+
+struct TRACKMOUSEEVENT
+    cbSize::DWORD
+    dwFlags::DWORD
+    hwndTrack::HWND
+    dwHoverTime::DWORD
+end
+TRACKMOUSEEVENT(hwnd) = TRACKMOUSEEVENT(sizeof(TRACKMOUSEEVENT), TME_LEAVE, hwnd, 0)
+
+TrackMouseEvent(tme) = @ccall User32.TrackMouseEvent(tme::Ptr{TRACKMOUSEEVENT})::BOOL
 
 const SW_HIDE = 0
 const SW_SHOWNORMAL = 1

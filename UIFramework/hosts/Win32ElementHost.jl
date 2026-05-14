@@ -43,6 +43,20 @@ function onElementHostPressed(hwnd)::LRESULT
     return 0
 end
 
+function onElementHostHover(hwnd)::LRESULT
+    if haskey(_hosts, hwnd)
+        hover(_hosts[hwnd])
+        tme = TRACKMOUSEEVENT(hwnd) |> Ref
+        TrackMouseEvent(tme)
+    end
+    return 0
+end
+
+function onElementHostUnhover(hwnd)::LRESULT
+    haskey(_hosts, hwnd) && unhover(_hosts[hwnd])
+    return 0
+end
+
 function elementHostWndProc(hwnd::HWND, umsg::UINT, wparam::WPARAM, lparam::LPARAM)::LRESULT
     try
         if umsg == WM_DESTROY
@@ -55,6 +69,10 @@ function elementHostWndProc(hwnd::HWND, umsg::UINT, wparam::WPARAM, lparam::LPAR
             return onElementHostPressed(hwnd)
         elseif umsg == WM_LBUTTONUP
             return onElementHostClick(hwnd)
+        elseif umsg == WM_MOUSEMOVE
+            return onElementHostHover(hwnd)
+        elseif umsg == WM_MOUSELEAVE
+            return onElementHostUnhover(hwnd)
         end
         return DefWindowProcW(hwnd, umsg, wparam, lparam)
     catch exc
