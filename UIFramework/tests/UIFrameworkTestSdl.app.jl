@@ -1,6 +1,6 @@
 @info "UIFrameworkTest (SDL2)"
 
-include("../../common/LibSkia.jl")
+include("../../Common/LibSkia.jl")
 using .LibSkia
 
 include("../framework/Layout.jl")
