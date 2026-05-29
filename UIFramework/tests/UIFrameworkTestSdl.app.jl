@@ -34,12 +34,14 @@ _layout = GridLayout(
 end
 element(e::MyCustomPixmapElement) = e.element
 
-function onPaint(outer::MyCustomPixmapElement, w, h)
+function onPaint(outer::MyCustomPixmapElement, w, h, scale::Float32=1f0)
     buf = element(outer).pixmap
     text = outer.text
-    info = sk_imageinfo_t(C_NULL, w, h, BGRA_8888_SK_COLORTYPE, PREMUL_SK_ALPHATYPE)
-    surface = sk_surface_new_raster_direct(Ref(info), buf, w * 4, C_NULL, C_NULL, C_NULL)
+    pw, ph = Int32.(size(buf))  # physical dims
+    info = sk_imageinfo_t(C_NULL, pw, ph, BGRA_8888_SK_COLORTYPE, PREMUL_SK_ALPHATYPE)
+    surface = sk_surface_new_raster_direct(Ref(info), buf, pw * 4, C_NULL, C_NULL, C_NULL)
     canvas = sk_surface_get_canvas(surface)
+    scale != 1f0 && sk_canvas_scale(canvas, scale, scale)
 
     fill = sk_paint_new()
     sk_paint_set_color(fill, sk_color_set_argb(0xFF, 0xA0, 0xB0, 0xE0))
@@ -66,12 +68,14 @@ function onPaint(outer::MyCustomPixmapElement, w, h)
     sk_surface_unref(surface)
 end
 
-function element_onPaint(e, w, h)
-    pixmap = Matrix{UInt32}(undef, w, h)
+function element_onPaint(e, w, h, scale::Float32=1f0)
+    pw, ph = round(Int32, w * scale), round(Int32, h * scale)
+    pixmap = Matrix{UInt32}(undef, pw, ph)
     text = e.userData
-    info = sk_imageinfo_t(C_NULL, w, h, BGRA_8888_SK_COLORTYPE, PREMUL_SK_ALPHATYPE)
-    surface = sk_surface_new_raster_direct(Ref(info), pixmap, w * 4, C_NULL, C_NULL, C_NULL)
+    info = sk_imageinfo_t(C_NULL, pw, ph, BGRA_8888_SK_COLORTYPE, PREMUL_SK_ALPHATYPE)
+    surface = sk_surface_new_raster_direct(Ref(info), pixmap, pw * 4, C_NULL, C_NULL, C_NULL)
     canvas = sk_surface_get_canvas(surface)
+    scale != 1f0 && sk_canvas_scale(canvas, scale, scale)
     paint = sk_paint_new()
     sk_paint_set_color(paint, sk_color_set_argb(0xFF, 0xFF, 0xFF, 0xFF))
     sk_canvas_draw_paint(canvas, paint)

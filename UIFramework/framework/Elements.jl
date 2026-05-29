@@ -6,10 +6,10 @@ element(e::AbstractElement) = e # Support composition
 repaint(e::AbstractElement) = element(e).repaint() # Ask the host to repaint this element sometime soon
 
 # Event handlers that can be overridden by elements
-onPaint(e::AbstractElement, w, h) = nothing
+onPaint(e::AbstractElement, w, h, scale::Float32=1f0) = nothing
 
 # Default behavior, just call the event handlers
-paint(e::AbstractElement, w::Integer, h::Integer) = onPaint(e, w, h)
+paint(e::AbstractElement, w::Integer, h::Integer, scale::Float32=1f0) = onPaint(e, w, h, scale)
 
 # Catch unhandled events
 press(::AbstractElement)                    = nothing
@@ -23,7 +23,7 @@ resize(::AbstractElement, w::Integer, h::Integer) = nothing
     repaint::Function = () -> nothing
     userData::Any = nothing
 end
-onPaint(e::Element, w, h) = e.onPaint(e, w, h)
+onPaint(e::Element, w, h, scale::Float32=1f0) = e.onPaint(e, w, h, scale)
 
 # Something that renders in to a pixmap which is cached
 abstract type AbstractPixmapElement <: AbstractElement end
@@ -42,10 +42,11 @@ function resize(e::AbstractPixmapElement, w::Integer, h::Integer)
     onResize(el, w, h)
 end
 
-function paint(e::AbstractPixmapElement, w::Integer, h::Integer)
+function paint(e::AbstractPixmapElement, w::Integer, h::Integer, scale::Float32=1f0)
     el = element(e)
-    checkcache(el, w, h)
-    onPaint(e, w, h)
+    pw, ph = round(Int32, w * scale), round(Int32, h * scale)
+    checkcache(el, pw, ph)
+    onPaint(e, w, h, scale)
     return el.pixmap
 end
 
@@ -133,19 +134,22 @@ function resize(b::Button, w::Integer, h::Integer)
     onResize(b, w, h)
 end
 
-function paint(b::Button, w::Integer, h::Integer)
-    size(b.pixmap) == (w, h) && return b.pixmap
-    b.pixmap = fill(b.bgColor, w, h)
-    onPaint(b, w, h)
+function paint(b::Button, w::Integer, h::Integer, scale::Float32=1f0)
+    pw, ph = round(Int32, w * scale), round(Int32, h * scale)
+    size(b.pixmap) == (pw, ph) && return b.pixmap
+    b.pixmap = fill(b.bgColor, pw, ph)
+    onPaint(b, w, h, scale)
     return b.pixmap
 end
 
-function onPaint(b::Button, w, h)
+function onPaint(b::Button, w, h, scale::Float32=1f0)
     cache = b.pixmap
     label = b.label
-    info = sk_imageinfo_t(C_NULL, w, h, BGRA_8888_SK_COLORTYPE, PREMUL_SK_ALPHATYPE)
-    surface = sk_surface_new_raster_direct(Ref(info), cache, w * 4, C_NULL, C_NULL, C_NULL)
+    pw, ph = Int32.(size(cache))  # physical dims
+    info = sk_imageinfo_t(C_NULL, pw, ph, BGRA_8888_SK_COLORTYPE, PREMUL_SK_ALPHATYPE)
+    surface = sk_surface_new_raster_direct(Ref(info), cache, pw * 4, C_NULL, C_NULL, C_NULL)
     canvas = sk_surface_get_canvas(surface)
+    scale != 1f0 && sk_canvas_scale(canvas, scale, scale)
 
     pressed = b.state & BS_PRESSED != 0
     hovered = b.state & BS_HOVERED != 0

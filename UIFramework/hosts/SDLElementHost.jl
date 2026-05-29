@@ -7,8 +7,9 @@ import .GC.@preserve
 const SDL_INIT_VIDEO = UInt32(0x00000020)
 
 const SDL_WINDOWPOS_CENTERED = Int32(0x2FFF0000)
-const SDL_WINDOW_SHOWN       = UInt32(0x00000004)
-const SDL_WINDOW_RESIZABLE   = UInt32(0x00000020)
+const SDL_WINDOW_SHOWN        = UInt32(0x00000004)
+const SDL_WINDOW_RESIZABLE    = UInt32(0x00000020)
+const SDL_WINDOW_ALLOW_HIGHDPI = UInt32(0x00002000)
 
 # Matches Skia BGRA_8888 memory layout on little-endian (B G R A bytes = ARGB packed int)
 const SDL_PIXELFORMAT_ARGB8888    = UInt32(0x16362004)
@@ -78,8 +79,11 @@ end
 mutable struct SDLHost
     window::Ptr{Cvoid}
     renderer::Ptr{Cvoid}
-    width::Int32
-    height::Int32
+    width::Int32         # logical pixels
+    height::Int32        # logical pixels
+    scale::Float32       # physical / logical pixel ratio
+    sdl_physical::Bool   # true = SDL window/event coords are physical (X11 + manual DPI scaling)
+                         # false = SDL manages the split internally (macOS ALLOW_HIGHDPI)
 end
 
 mutable struct SDLElementHost
@@ -98,6 +102,37 @@ const _sdl_hosts = Dict{Int, SDLElementHost}()
 
 # ── Lifecycle ─────────────────────────────────────────────────────────────────
 
+function _detect_dpi_scale()::Float32
+    # 1. SDL_GetDisplayDPI — reliable on Wayland; returns noise (~96.003) on X11
+    ddpi = Ref{Cfloat}(0f0)
+    if @ccall(libsdl2.SDL_GetDisplayDPI(Int32(0)::Int32, ddpi::Ptr{Cfloat},
+                C_NULL::Ptr{Cfloat}, C_NULL::Ptr{Cfloat})::Cint) == 0
+        s = ddpi[] / 96f0
+        s >= 1.1f0 && return s
+    end
+    # 2. Xft.dpi from X resources — GNOME/KDE set this to 96*scale on X11
+    try
+        for line in split(readchomp(`xrdb -query`), '\n')
+            if startswith(line, "Xft.dpi:")
+                s = parse(Float32, strip(split(line, ':')[2])) / 96f0
+                s >= 1.1f0 && return s
+            end
+        end
+    catch; end
+    # 3. GNOME gsettings scaling-factor
+    try
+        s = parse(Float32, strip(readchomp(`gsettings get org.gnome.desktop.interface scaling-factor`)))
+        s >= 1.1f0 && return s
+    catch; end
+    # 4. Compositor env vars set manually or by some DEs
+    for key in ("GDK_SCALE", "QT_SCALE_FACTOR")
+        val = get(ENV, key, "")
+        isempty(val) && continue
+        try; s = parse(Float32, val); s >= 1.1f0 && return s; catch; end
+    end
+    return 1f0
+end
+
 function createSDLHost(title::String, w::Int, h::Int)::SDLHost
     @ccall(libsdl2.SDL_Init(SDL_INIT_VIDEO::UInt32)::Cint) < 0 &&
         error("SDL_Init: $(unsafe_string(@ccall libsdl2.SDL_GetError()::Cstring))")
@@ -105,13 +140,49 @@ function createSDLHost(title::String, w::Int, h::Int)::SDLHost
         title::Cstring,
         SDL_WINDOWPOS_CENTERED::Int32, SDL_WINDOWPOS_CENTERED::Int32,
         Int32(w)::Int32, Int32(h)::Int32,
-        (SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE)::UInt32)::Ptr{Cvoid}
+        (SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI)::UInt32)::Ptr{Cvoid}
     window == C_NULL &&
         error("SDL_CreateWindow: $(unsafe_string(@ccall libsdl2.SDL_GetError()::Cstring))")
     renderer = @ccall libsdl2.SDL_CreateRenderer(window::Ptr{Cvoid}, Int32(-1)::Int32, UInt32(0)::UInt32)::Ptr{Cvoid}
     renderer == C_NULL &&
         error("SDL_CreateRenderer: $(unsafe_string(@ccall libsdl2.SDL_GetError()::Cstring))")
-    return SDLHost(window, renderer, Int32(w), Int32(h))
+
+    rw = Ref{Cint}(0)
+    @ccall libsdl2.SDL_GetRendererOutputSize(renderer::Ptr{Cvoid}, rw::Ptr{Cint}, C_NULL::Ptr{Cint})::Cint
+    scale = Float32(rw[]) / Float32(w)
+    sdl_physical = false
+
+    if scale ≈ 1f0
+        # SDL didn't handle HiDPI (X11 with software renderer). Detect scale manually
+        # and resize the window to physical pixels so it appears at the right size.
+        scale = _detect_dpi_scale()
+        if scale > 1f0
+            phys_w = round(Int32, w * scale)
+            phys_h = round(Int32, h * scale)
+            @ccall libsdl2.SDL_SetWindowSize(window::Ptr{Cvoid}, phys_w::Int32, phys_h::Int32)::Cvoid
+            sdl_physical = true
+        end
+    end
+
+    @info "DPI scale: $scale"
+    return SDLHost(window, renderer, Int32(w), Int32(h), scale, sdl_physical)
+end
+
+function _update_scale!(host::SDLHost)
+    rw, rh = Ref{Cint}(0), Ref{Cint}(0)
+    ww, wh = Ref{Cint}(0), Ref{Cint}(0)
+    @ccall libsdl2.SDL_GetRendererOutputSize(host.renderer::Ptr{Cvoid}, rw::Ptr{Cint}, rh::Ptr{Cint})::Cint
+    @ccall libsdl2.SDL_GetWindowSize(host.window::Ptr{Cvoid}, ww::Ptr{Cint}, wh::Ptr{Cint})::Cint
+    if rw[] != ww[]
+        # macOS with ALLOW_HIGHDPI: SDL window size is in logical points
+        host.width  = Int32(ww[])
+        host.height = Int32(wh[])
+        host.scale  = Float32(rw[]) / Float32(ww[])
+    else
+        # X11: window and renderer both in physical pixels; scale stays from DPI detection
+        host.width  = round(Int32, ww[] / host.scale)
+        host.height = round(Int32, wh[] / host.scale)
+    end
 end
 
 function createSDLElementHost(host::SDLHost, e::AbstractElement, id::Int, x::Int, y::Int, w::Int, h::Int)
@@ -150,10 +221,11 @@ end
 
 function renderElement(eh::SDLElementHost)
     (eh.width <= 0 || eh.height <= 0) && return
-    pixmap = paint(eh.el, eh.width, eh.height)
+    scale = eh.host.scale
+    pixmap = paint(eh.el, eh.width, eh.height, scale)
     pixmap === nothing && return
 
-    pw, ph = Int32.(size(pixmap))
+    pw, ph = Int32.(size(pixmap))  # physical pixel dimensions
     if eh.texture == C_NULL || eh.tex_w != pw || eh.tex_h != ph
         eh.texture != C_NULL && @ccall libsdl2.SDL_DestroyTexture(eh.texture::Ptr{Cvoid})::Cvoid
         eh.texture = @ccall libsdl2.SDL_CreateTexture(
@@ -169,7 +241,8 @@ function renderElement(eh::SDLElementHost)
         Ptr{Cvoid}(pointer(pixmap))::Ptr{Cvoid},
         (pw * Int32(4))::Int32)::Cint
 
-    dst = Int32[eh.x, eh.y, eh.width, eh.height]
+    px, py = round(Int32, eh.x * scale), round(Int32, eh.y * scale)
+    dst = Int32[px, py, pw, ph]
     @preserve dst @ccall libsdl2.SDL_RenderCopy(
         eh.host.renderer::Ptr{Cvoid}, eh.texture::Ptr{Cvoid},
         C_NULL::Ptr{Cvoid}, Ptr{Cvoid}(pointer(dst))::Ptr{Cvoid})::Cint
@@ -207,7 +280,7 @@ function _resize_watch_cb(::Ptr{Cvoid}, event::Ptr{Cvoid})::Cint
     unsafe_load(Ptr{UInt32}(event)) == SDL_WINDOWEVENT || return 0
     we = unsafe_load(Ptr{SDL_WindowEvent}(event))
     we.event == SDL_WINDOWEVENT_SIZE_CHANGED || return 0
-    host.width, host.height = we.data1, we.data2
+    _update_scale!(host)
     _watch_onResize[](host, we.data1, we.data2)
     renderAll(host)
     return 0
@@ -229,7 +302,7 @@ function sdlEventLoop(host::SDLHost, onResize::Function)
         elseif etype == SDL_WINDOWEVENT
             we = as_window_event(ev)
             if we.event == SDL_WINDOWEVENT_SIZE_CHANGED
-                host.width, host.height = we.data1, we.data2
+                _update_scale!(host)
                 onResize(host, we.data1, we.data2)
                 renderAll(host)
             elseif we.event == SDL_WINDOWEVENT_EXPOSED
@@ -238,14 +311,18 @@ function sdlEventLoop(host::SDLHost, onResize::Function)
         elseif etype == SDL_MOUSEBUTTONDOWN
             mb = as_mouse_button(ev)
             if mb.button == SDL_BUTTON_LEFT
-                eh = hitTest(host, mb.x, mb.y)
+                lx = host.sdl_physical ? round(Int32, mb.x / host.scale) : mb.x
+                ly = host.sdl_physical ? round(Int32, mb.y / host.scale) : mb.y
+                eh = hitTest(host, lx, ly)
                 eh !== nothing && press(eh.el)
                 renderAll(host)
             end
         elseif etype == SDL_MOUSEBUTTONUP
             mb = as_mouse_button(ev)
             if mb.button == SDL_BUTTON_LEFT
-                eh = hitTest(host, mb.x, mb.y)
+                lx = host.sdl_physical ? round(Int32, mb.x / host.scale) : mb.x
+                ly = host.sdl_physical ? round(Int32, mb.y / host.scale) : mb.y
+                eh = hitTest(host, lx, ly)
                 eh !== nothing && click(eh.el)
                 renderAll(host)
             end
