@@ -1,17 +1,18 @@
-@info "SkiaTest"
+@info "UIFrameworkTest"
 using LibBaseTsd
 
 # @info "Win32"
-include("../common/Win32.jl")
+include("../../common/Win32.jl")
 using .W32
 import .W32: TRUE, FALSE
 
 # @info "LibSkia"
-include("../common/LibSkia.jl")
+include("../../common/LibSkia.jl")
 using .LibSkia
 
-# @info "Layout"
-include("Layout.jl")
+include("../framework/Layout.jl")
+include("../framework/Elements.jl")
+include("../hosts/Win32ElementHost.jl")
 
 # @info "Base"
 import Base.cconvert, .GC.@preserve
@@ -20,6 +21,7 @@ const GAP = -1
 const IDC_IMAGE = 1
 const IDC_OK = 2
 const IDC_CANCEL = 3
+const IDC_TEXT = 4
 const MIN_WIDTH = 200
 const MIN_HEIGHT = 200
 
@@ -39,30 +41,27 @@ _layout = GridLayout(
         GAP     GAP         GAP         GAP         GAP    
         GAP     IDC_IMAGE   IDC_IMAGE   IDC_IMAGE   GAP
         GAP     GAP         GAP         GAP         GAP    
-        GAP     GAP         IDC_OK      IDC_CANCEL  GAP 
+        GAP     IDC_TEXT    IDC_OK      IDC_CANCEL  GAP
         GAP     GAP         GAP         GAP         GAP    
     ], 
     [5, ★"1", 5, 30, 5],   # row heights
     [5, ★"1", 75, 75, 5])  # col widths
 
-_dib::HBITMAP = C_NULL
-_pbits::Ptr{Cvoid} = C_NULL
-
-function onImageCreate(hwnd)::LRESULT
-    # @info "onImageCreate" hwnd
-    return 0
-end
-
-function onImageDestroy(hwnd)::LRESULT
-    # @info "onImageDestroy" hwnd
-    return 0
-end
-
 sk_color_set_argb(a, r, g, b) = ((UInt32(a) << 24) | (UInt32(r) << 16) | (UInt32(g) << 8) | UInt32(b))
 
-function skiaDraw(w, h)
+# Example of custom element with custom painting using composition
+@kwdef mutable struct MyCustomPixmapElement <: AbstractPixmapElement
+    element::PixmapElement = PixmapElement()
+    text::String = "Hello World!"
+    # More private state can go here
+end
+element(e::MyCustomPixmapElement) = e.element # compose
+
+function onPaint(outer::MyCustomPixmapElement, w, h)
+    buf = element(outer).pixmap
+    text = outer.text
     info = sk_imageinfo_t(C_NULL, w, h, BGRA_8888_SK_COLORTYPE, PREMUL_SK_ALPHATYPE)
-    surface = sk_surface_new_raster_direct(Ref(info), _pbits, w * 4, C_NULL, C_NULL, C_NULL)
+    surface = sk_surface_new_raster_direct(Ref(info), buf, w * 4, C_NULL, C_NULL, C_NULL)
     canvas = sk_surface_get_canvas(surface)
 
     fill = sk_paint_new()
@@ -75,97 +74,66 @@ function skiaDraw(w, h)
 
     textpaint = sk_paint_new()
     sk_paint_set_color(textpaint, sk_color_set_argb(0xFF, 0x00, 0x00, 0x00))
-    # sk_paint_set_antialias(textpaint, true)
-    text = "Hello, World!"
     fontstyle = sk_fontstyle_new(SK_FONT_STYLE_NORMAL_WEIGHT, SK_FONT_STYLE_NORMAL_WIDTH, UPRIGHT_SK_FONT_STYLE_SLANT)
     typeface = sk_typeface_create_from_name("Arial", fontstyle)
     font = sk_font_new()
     sk_font_set_typeface(font, typeface)
     sk_font_set_size(font, 24.0)
-    sk_canvas_draw_simple_text(canvas, pointer(text), sizeof(text), UTF8_SK_TEXT_ENCODING, 10.0, 35.0, font, textpaint)
+    @preserve text sk_canvas_draw_simple_text(canvas, pointer(text), sizeof(text), UTF8_SK_TEXT_ENCODING, 10.0, 35.0, font, textpaint)
 
+    sk_font_delete(font)
+    sk_typeface_unref(typeface)
+    sk_fontstyle_delete(fontstyle)
+    sk_paint_delete(textpaint)
     sk_paint_delete(fill)
     sk_surface_unref(surface)
 end
 
-function onImagePaint(hwnd)::LRESULT
-    @info "onImagePaint" hwnd
-    ps = PAINTSTRUCT() |> Ref
-    hdc = BeginPaint(hwnd, ps)
-    rcclient = RECT() |> Ref
-    GetClientRect(hwnd, rcclient)
-    skiaDraw(rcclient[].right - rcclient[].left, rcclient[].bottom - rcclient[].top) # draw the whole thing
-    hdcmem = CreateCompatibleDC(hdc)
-    hbmpold = SelectObject(hdcmem, _dib)
-    BitBlt(hdc, ps[].rcPaint.left, ps[].rcPaint.top, ps[].rcPaint.right - ps[].rcPaint.left, ps[].rcPaint.bottom - ps[].rcPaint.top, hdcmem, ps[].rcPaint.left, ps[].rcPaint.top, SRCCOPY)
-    SelectObject(hdcmem, hbmpold)
-    DeleteDC(hdcmem)
-    EndPaint(hwnd, ps)
-    return 0
-end
-
-function onImageSize(hwnd, width, height)::LRESULT
-    global _dib, _pbits
-    @info "onImageSize" hwnd width height
-    if width <= 0 || height <= 0; return 0 end
-    bmih = BITMAPINFOHEADER(sizeof(BITMAPINFOHEADER), width, -1*height, 1, 32, BI_RGB, 0, 0, 0, 0, 0) |> Ref
-    bmpinfo = BITMAPINFO(bmih[], (RGBQUAD(),)) |> Ref
-    hdc = GetDC(hwnd)
-    if _dib != C_NULL; DeleteObject(_dib) end
-    pbits = Ptr{Cvoid}(0) |> Ref
-    _dib = CreateDIBSection(hdc, bmpinfo, DIB_RGB_COLORS, pbits, C_NULL, 0)
-    @assert _dib != C_NULL
-    @assert pbits[] != C_NULL
-    _pbits = pbits[]
-    ReleaseDC(hwnd, hdc)
-    return 0
-end
-
-function imageWndProc(hwnd::HWND, umsg::UINT, wparam::WPARAM, lparam::LPARAM)::LRESULT
-    try
-        if umsg == WM_CREATE
-            return onImageCreate(hwnd)
-        elseif umsg == WM_DESTROY
-            return onImageDestroy(hwnd)
-        elseif umsg == WM_PAINT
-            return onImagePaint(hwnd)
-        elseif umsg == WM_SIZE
-            return onImageSize(hwnd, LOWORD(lparam), HIWORD(lparam))
-        end
-        return DefWindowProcW(hwnd, umsg, wparam, lparam)
-    catch exc
-        @error exc
-        @info "Exception" catch_backtrace() |> stacktrace
-    end
-
-    return 0
-end
-
-function createImageWindow(parent, id, x, y, w, h)
-    classname = L"ImageClass"
-    wc = WNDCLASSW(
-        CS_HREDRAW | CS_VREDRAW, 
-        @cfunction(imageWndProc, LRESULT, (HWND, UINT, WPARAM, LPARAM)), 
-        0, 0, 
-        HINST, 
-        LoadIconW(HINSTANCE(0), IDI_INFORMATION), 
-        LoadCursorW(HINSTANCE(0), IDC_ARROW), 
-        HBRUSH(COLOR_WINDOW+1), 
-        C_NULL, 
-        pointer(classname))
-    @preserve classname RegisterClassW(Ref(wc))
-    hwnd = CreateWindowExW(DWORD(0), classname, L"Image", WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS, x, y, w, h, parent, HMENU(id), HINST, LPVOID(0))
-    return hwnd
+# An example of a simple custom paint for an Element instance
+function element_onPaint(e, w, h)
+    pixmap = Matrix{UInt32}(undef, w, h)
+    text = e.userData
+    info = sk_imageinfo_t(C_NULL, w, h, BGRA_8888_SK_COLORTYPE, PREMUL_SK_ALPHATYPE)
+    surface = sk_surface_new_raster_direct(Ref(info), pixmap, w * 4, C_NULL, C_NULL, C_NULL)
+    canvas = sk_surface_get_canvas(surface)
+    paint = sk_paint_new()
+    sk_paint_set_color(paint, sk_color_set_argb(0xFF, 0xFF, 0xFF, 0xFF))
+    sk_canvas_draw_paint(canvas, paint)
+    fontstyle = sk_fontstyle_new(SK_FONT_STYLE_NORMAL_WEIGHT, SK_FONT_STYLE_NORMAL_WIDTH, UPRIGHT_SK_FONT_STYLE_SLANT)
+    typeface = sk_typeface_create_from_name("Segoe UI", fontstyle)
+    font = sk_font_new()
+    sk_font_set_typeface(font, typeface)
+    sk_font_set_size(font, 13f0)
+    sk_font_set_edging(font, SUBPIXEL_ANTIALIAS_SK_FONT_EDGING)
+    sk_font_set_subpixel(font, true)
+    metrics = Ref{sk_fontmetrics_t}()
+    sk_font_get_metrics(font, metrics)
+    y = (h + metrics[].fCapHeight) / 2f0
+    sk_paint_set_color(paint, sk_color_set_argb(0xFF, 0x1A, 0x1A, 0x1A))
+    @preserve text sk_canvas_draw_simple_text(canvas, pointer(text), sizeof(text), UTF8_SK_TEXT_ENCODING, 5f0, y, font, paint)
+    sk_font_delete(font)
+    sk_typeface_unref(typeface)
+    sk_fontstyle_delete(fontstyle)
+    sk_paint_delete(paint)
+    sk_surface_unref(surface)
+    return pixmap
 end
 
 function onCreate(hwnd)
-    hwndImage = createImageWindow(hwnd, IDC_IMAGE, 0, 0, 100, 100)
-    lf = W32.LOGFONTW(-16, 0, 0, 0, 400, 0, 0, 0, 1, 0, 0, 0, 0, Tuple(L"Segoe UI", 32))
-    hfont = W32.CreateFontIndirectW(Ref(lf))
-    ok = CreateWindowExW(0, L"BUTTON", L"OK", WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_TABSTOP, 10, 10, 100, 100, hwnd, HMENU(IDC_OK), HINST, C_NULL)
-    SendMessageW(ok, WM_SETFONT, WPARAM(hfont), LPARAM(TRUE))
-    cancel = CreateWindowExW(0, L"BUTTON", L"Cancel", WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_TABSTOP, 20, 20, 100, 100, hwnd, HMENU(IDC_CANCEL), HINST, C_NULL)
-    SendMessageW(cancel, WM_SETFONT, WPARAM(hfont), LPARAM(TRUE))
+    image_element = MyCustomPixmapElement()
+    createElementHost(hwnd, image_element, IDC_IMAGE, 0, 0, 100, 100)
+
+    text_element = Element(onPaint = element_onPaint, userData = "Simple Text Element")
+    createElementHost(hwnd, text_element, IDC_TEXT, 0, 0, 100, 100)
+
+    ok_button = Button("OK"; bgColor = 0xFFFFFFFF)   # default
+    ok_button.onClicked = () -> @info "OK Clicked"
+    createElementHost(hwnd, ok_button, IDC_OK, 0, 0, 100, 100)
+
+    cancel_button = Button("Cancel"; bgColor = 0xFFFF0000, faceColor = 0xFF00FF00, borderColor = 0xFF0000FF)   # white
+    cancel_button.onClicked = () -> @info "Cancel Clicked"
+    createElementHost(hwnd, cancel_button, IDC_CANCEL, 0, 0, 100, 100)
+
     return 0
 end
 
@@ -222,7 +190,7 @@ function appWndProc(hwnd::HWND, umsg::UINT, wparam::WPARAM, lparam::LPARAM)::LRE
         return DefWindowProcW(hwnd, umsg, wparam, lparam)
     catch exc
         @error exc
-        @info "Exception" catch_backtrace() |> stacktrace
+        throw(exc)
     end
 
     return 0
@@ -241,7 +209,7 @@ function createMainWindow()
         C_NULL, 
         pointer(classname))
     @preserve classname RegisterClassW(Ref(wc))
-    hwnd = CreateWindowExW(DWORD(0), classname, L"Skia Test", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 512, 512, HWND(0), HMENU(0), HINST, LPVOID(0))
+    hwnd = CreateWindowExW(DWORD(0), classname, L"UIFramework Test", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 512, 512, HWND(0), HMENU(0), HINST, LPVOID(0))
     return hwnd
 end
 

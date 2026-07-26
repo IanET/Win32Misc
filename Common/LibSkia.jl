@@ -4,7 +4,19 @@ using CEnum
 
 # TODO Use artifacts
 
-const LibSkiaSharp = "libSkiaSharp.dll"
+const LibSkiaSharp = @static if Sys.iswindows()
+    joinpath(@__DIR__, "..", "UIFramework", "framework", "native", "win-x64",    "libSkiaSharp.dll")
+elseif Sys.islinux() && Sys.ARCH === :aarch64
+    joinpath(@__DIR__, "..", "UIFramework", "framework", "native", "linux-arm64", "libSkiaSharp.so")
+elseif Sys.islinux()
+    joinpath(@__DIR__, "..", "UIFramework", "framework", "native", "linux-x64",   "libSkiaSharp.so")
+elseif Sys.isapple() && Sys.ARCH === :aarch64
+    joinpath(@__DIR__, "..", "UIFramework", "framework", "native", "osx-arm64",  "libSkiaSharp.dylib")
+elseif Sys.isapple()
+    joinpath(@__DIR__, "..", "UIFramework", "framework", "native", "osx-x64",    "libSkiaSharp.dylib")
+else
+    error("Unsupported platform: $(Sys.KERNEL) $(Sys.ARCH)")
+end
 
 const SK_FONT_STYLE_NORMAL_WEIGHT = 400
 const SK_FONT_STYLE_NORMAL_WIDTH = 5
