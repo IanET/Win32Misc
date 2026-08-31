@@ -99,8 +99,7 @@ end
 
 # --- Completed handler (fires when GetGeopositionAsync finishes) ---
 
-const done = Base.Event()
-const result = Ref{Any}(nothing)
+const resultch = Channel{Any}(1)
 
 function GeopositionHandler_QueryInterface(this::Ptr{IAsyncOperationCompletedHandler}, riid::Ptr{GUID}, ppv::Ptr{Ptr{Cvoid}})::HRESULT
     guid = unsafe_load(riid)
@@ -137,25 +136,24 @@ function GeopositionHandler_Invoke(this::Ptr{IAsyncOperationCompletedHandler}, a
             get_Timestamp(coord, ts) |> AssertSuccess
             get_Altitude(coord, paltref) |> AssertSuccess
 
-            result[] = (
+            Release(coord)
+            Release(position)
+
+            put!(resultch, (
                 latitude = lat[],
                 longitude = lon[],
                 accuracy = acc[],
                 altitude = opt_double(paltref[]),
                 timestamp = filetime_to_datetime(ts[]),
-            )
-
-            Release(coord)
-            Release(position)
+            ))
         else
             errcode = HRESULT(0) |> Ref
             get_ErrorCode(Ptr{IAsyncInfo}(asyncInfo), errcode)
-            @error "GetGeopositionAsync did not complete" asyncStatus errcode = @sprintf("0x%x", reinterpret(UInt32, errcode[]))
+            errcodestr = @sprintf("0x%x", reinterpret(UInt32, errcode[]))
+            close(resultch, ErrorException("GetGeopositionAsync did not complete: status $asyncStatus, error $errcodestr"))
         end
     catch e
-        @error "Error handling geoposition result" exception = (e, catch_backtrace())
-    finally
-        notify(done)
+        close(resultch, e)
     end
     return S_OK
 end
@@ -203,22 +201,17 @@ function main()
         put_Completed(asyncop[], handler) |> AssertSuccess
 
         @info "Waiting for location..."
-        wait(done)
+        r = take!(resultch)
         Release(asyncop[])
         Release(geolocator)
 
-        if result[] === nothing
-            println("Failed to get location.")
-        else
-            r = result[]
-            println("Latitude:  $(r.latitude)")
-            println("Longitude: $(r.longitude)")
-            println("Accuracy:  $(r.accuracy) meters")
-            if r.altitude !== nothing
-                println("Altitude:  $(r.altitude) meters")
-            end
-            println("Timestamp: $(r.timestamp)")
+        println("Latitude:  $(r.latitude)")
+        println("Longitude: $(r.longitude)")
+        println("Accuracy:  $(r.accuracy) meters")
+        if r.altitude !== nothing
+            println("Altitude:  $(r.altitude) meters")
         end
+        println("Timestamp: $(r.timestamp)")
     catch e
         @error "Failed to get GPS location" exception = (e, catch_backtrace())
     finally
